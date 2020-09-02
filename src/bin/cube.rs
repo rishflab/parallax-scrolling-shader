@@ -3,7 +3,7 @@ extern crate erlking;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use erlking::{asset, camera::Camera, framework};
+use erlking::{asset, camera::Camera, framework, game::World};
 use gltf::mesh::util::ReadIndices;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
@@ -41,9 +41,11 @@ fn create_texels(size: usize) -> Vec<u8> {
 }
 
 struct Example {
+    world: World,
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
     index_count: usize,
+    instance_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
@@ -57,6 +59,8 @@ impl framework::Example for Example {
         queue: &wgpu::Queue,
     ) -> Self {
         use std::mem;
+
+        let world = World::two_cubes();
 
         let (gltf, buffers) = asset::load(std::path::Path::new("")).unwrap();
 
@@ -99,6 +103,14 @@ impl framework::Example for Example {
             usage: wgpu::BufferUsage::INDEX,
         });
 
+        let instance_data = world.cube_instance_data();
+
+        let instance_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: bytemuck::cast_slice(&instance_data),
+            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
+        });
+
         // Create pipeline layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
@@ -114,6 +126,16 @@ impl framework::Example for Example {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::StorageBuffer {
+                        dynamic: false,
+                        min_binding_size: None,
+                        readonly: false,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
                         multisampled: false,
@@ -123,7 +145,7 @@ impl framework::Example for Example {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 2,
+                    binding: 3,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler { comparison: false },
                     count: None,
@@ -202,10 +224,14 @@ impl framework::Example for Example {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                    resource: instance_buf.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
                     resource: wgpu::BindingResource::Sampler(&sampler),
                 },
             ],
@@ -268,17 +294,19 @@ impl framework::Example for Example {
 
         // Done
         Example {
+            world,
             vertex_buf,
             index_buf,
             index_count: index_data.len(),
             bind_group,
             uniform_buf,
             pipeline,
+            instance_buf,
             camera,
         }
     }
 
-    fn update(&mut self, event: winit::event::WindowEvent) {
+    fn input(&mut self, event: winit::event::WindowEvent) {
         match event {
             WindowEvent::KeyboardInput { input, .. } => match input {
                 KeyboardInput {
@@ -316,6 +344,10 @@ impl framework::Example for Example {
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
+    fn update(&mut self) {
+        self.world.update();
+    }
+
     fn render(
         &mut self,
         frame: &wgpu::SwapChainTexture,
@@ -329,6 +361,12 @@ impl framework::Example for Example {
             .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+
+        queue.write_buffer(
+            &self.instance_buf,
+            0,
+            bytemuck::cast_slice(&self.world.cube_instance_data()),
+        );
 
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -356,7 +394,7 @@ impl framework::Example for Example {
             rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
-            rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+            rpass.draw_indexed(0..self.index_count as u32, 0, 0..100);
         }
 
         queue.submit(Some(encoder.finish()));

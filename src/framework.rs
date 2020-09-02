@@ -41,7 +41,8 @@ pub trait Example: 'static + Sized {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     );
-    fn update(&mut self, event: WindowEvent);
+    fn input(&mut self, event: WindowEvent);
+    fn update(&mut self);
     fn render(
         &mut self,
         frame: &wgpu::SwapChainTexture,
@@ -260,9 +261,7 @@ fn start<E: Example>(
                 | WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
-                _ => {
-                    example.update(event);
-                }
+                _ => example.input(event),
             },
             event::Event::RedrawRequested(_) => {
                 let frame = match swap_chain.get_current_frame() {
@@ -274,10 +273,10 @@ fn start<E: Example>(
                             .expect("Failed to acquire next swap chain texture!")
                     }
                 };
-
+                example.update();
                 example.render(&frame.output, &device, &queue, &spawner, &sc_desc);
             }
-            _ => {}
+            _ => (),
         }
     });
 }
