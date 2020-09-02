@@ -6,15 +6,6 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
-#[allow(unused)]
-pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.0, 0.0, 0.5, 1.0,
-);
-
 #[allow(dead_code)]
 pub fn cast_slice<T>(data: &[T]) -> &[u8] {
     use std::{mem::size_of, slice::from_raw_parts};
@@ -57,6 +48,7 @@ pub trait Example: 'static + Sized {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         spawner: &impl LocalSpawn,
+        sc_desc: &wgpu::SwapChainDescriptor,
     );
 }
 
@@ -283,7 +275,7 @@ fn start<E: Example>(
                     }
                 };
 
-                example.render(&frame.output, &device, &queue, &spawner);
+                example.render(&frame.output, &device, &queue, &spawner, &sc_desc);
             }
             _ => {}
         }

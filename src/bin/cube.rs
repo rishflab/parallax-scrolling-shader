@@ -3,9 +3,9 @@ extern crate erlking;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use erlking::{asset, framework};
+use erlking::{asset, camera::Camera, framework};
 use gltf::mesh::util::ReadIndices;
-use wgpu::VertexAttributeDescriptor;
+use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -16,13 +16,6 @@ struct Vertex {
 
 unsafe impl Pod for Vertex {}
 unsafe impl Zeroable for Vertex {}
-
-fn vertex(pos: [i8; 3], tc: [i8; 2]) -> Vertex {
-    Vertex {
-        _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, 1.0],
-        _tex_coord: [tc[0] as f32, tc[1] as f32],
-    }
-}
 
 fn create_texels(size: usize) -> Vec<u8> {
     use std::iter;
@@ -54,19 +47,7 @@ struct Example {
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
-}
-
-impl Example {
-    fn generate_matrix(aspect_ratio: f32) -> cgmath::Matrix4<f32> {
-        let mx_projection = cgmath::perspective(cgmath::Deg(45f32), aspect_ratio, 1.0, 10.0);
-        let mx_view = cgmath::Matrix4::look_at(
-            cgmath::Point3::new(1.5f32, -5.0, 3.0),
-            cgmath::Point3::new(0f32, 0.0, 0.0),
-            cgmath::Vector3::unit_z(),
-        );
-        let mx_correction = framework::OPENGL_TO_WGPU_MATRIX;
-        mx_correction * mx_projection * mx_view
-    }
+    camera: Camera,
 }
 
 impl framework::Example for Example {
@@ -79,10 +60,6 @@ impl framework::Example for Example {
 
         let (gltf, buffers) = asset::load(std::path::Path::new("")).unwrap();
 
-        for b in gltf.buffers() {}
-
-        let raw_buffer = buffers.iter().next().unwrap().clone();
-
         let mesh = gltf.meshes().next().unwrap();
         let primitive = mesh.primitives().next().unwrap();
 
@@ -92,13 +69,6 @@ impl framework::Example for Example {
             ReadIndices::U16(a) => a.collect::<Vec<u16>>(),
             _ => panic!("index size not supported"),
         };
-
-        // let index_data = reader
-        //     .read_indices()
-        //     .expect("no index data in gltf")
-        //     .into_u32()
-        //     .collect::<Vec<u32>>()
-        //     .as_slice();
 
         let positions_reader = reader.read_positions().expect("no position data in gltf");
 
@@ -209,7 +179,12 @@ impl framework::Example for Example {
             mipmap_filter: wgpu::FilterMode::Nearest,
             ..Default::default()
         });
-        let mx_total = Self::generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+
+        let camera = Camera::new(
+            cgmath::Point3::new(1.5f32, -5.0, 3.0),
+            cgmath::Point3::new(0f32, 0.0, 0.0),
+        );
+        let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
@@ -299,11 +274,33 @@ impl framework::Example for Example {
             bind_group,
             uniform_buf,
             pipeline,
+            camera,
         }
     }
 
-    fn update(&mut self, _event: winit::event::WindowEvent) {
-        //empty
+    fn update(&mut self, event: winit::event::WindowEvent) {
+        match event {
+            WindowEvent::KeyboardInput { input, .. } => match input {
+                KeyboardInput {
+                    state: ElementState::Pressed,
+                    virtual_keycode: Some(VirtualKeyCode::Left),
+                    ..
+                } => {
+                    self.camera.eye += cgmath::vec3(0.1, 0.0, 0.0);
+                    self.camera.look_at += cgmath::vec3(0.1, 0.0, 0.0);
+                }
+                KeyboardInput {
+                    state: ElementState::Pressed,
+                    virtual_keycode: Some(VirtualKeyCode::Right),
+                    ..
+                } => {
+                    self.camera.eye += cgmath::vec3(-0.1, 0.0, 0.0);
+                    self.camera.look_at += cgmath::vec3(-0.1, 0.0, 0.0);
+                }
+                _ => (),
+            },
+            _ => {}
+        }
     }
 
     fn resize(
@@ -312,7 +309,9 @@ impl framework::Example for Example {
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        let mx_total = Self::generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+        let mx_total = self
+            .camera
+            .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
@@ -323,7 +322,14 @@ impl framework::Example for Example {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         _spawner: &impl futures::task::LocalSpawn,
+        sc_desc: &wgpu::SwapChainDescriptor,
     ) {
+        let mx_total = self
+            .camera
+            .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {

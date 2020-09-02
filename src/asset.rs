@@ -1,8 +1,5 @@
-use gltf;
-use std::path::Path;
-use gltf::Gltf;
-use std::{io, fs};
-use gltf::buffer::Source;
+use gltf::{buffer::Source, Gltf};
+use std::{fs, io, path::Path};
 use thiserror::Error;
 
 /// An error that occurs when loading a GLTF file
@@ -20,15 +17,13 @@ pub enum GltfError {
     BufferFormatUnsupported,
 }
 
-pub fn load(path: &Path) -> Result<(Gltf, Vec<Vec<u8>>), GltfError> {
-
-    let asset_path = std::path::Path::new(&"/home/rishflab/wgpu-rs/examples/asset/cube.gltf");
+pub fn load(_path: &Path) -> Result<(Gltf, Vec<Vec<u8>>), GltfError> {
+    let asset_path = std::path::Path::new(&"/home/rishflab/erlking/assets/icosphere.gltf");
 
     let gltf = gltf::Gltf::open(asset_path)?;
     let buffer_data = load_buffers(&gltf, asset_path)?;
     Ok((gltf, buffer_data))
 }
-
 
 fn load_buffers(gltf: &gltf::Gltf, asset_path: &Path) -> Result<Vec<Vec<u8>>, GltfError> {
     const OCTET_STREAM_URI: &str = "data:application/octet-stream;base64,";
