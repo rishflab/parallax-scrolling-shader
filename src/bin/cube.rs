@@ -1,21 +1,13 @@
 extern crate erlking;
-
-use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use erlking::{asset, camera::Camera, framework, game::World};
-use gltf::mesh::util::ReadIndices;
+use erlking::{
+    asset::{MeshData, StaticMesh, StaticMeshHandle, Vertex},
+    camera::Camera,
+    framework,
+    game::World,
+};
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct Vertex {
-    _pos: [f32; 4],
-    _tex_coord: [f32; 2],
-}
-
-unsafe impl Pod for Vertex {}
-unsafe impl Zeroable for Vertex {}
 
 fn create_texels(size: usize) -> Vec<u8> {
     use std::iter;
@@ -44,12 +36,12 @@ struct Example {
     world: World,
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
-    index_count: usize,
     instance_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     camera: Camera,
+    static_mesh_handles: Vec<StaticMeshHandle>,
 }
 
 impl framework::Example for Example {
@@ -60,50 +52,31 @@ impl framework::Example for Example {
     ) -> Self {
         use std::mem;
 
-        let world = World::two_cubes();
+        let world = World::test();
 
-        let (gltf, buffers) = asset::load(std::path::Path::new("")).unwrap();
+        let icosphere_path = std::path::Path::new(&"/home/rishflab/erlking/assets/icosphere.gltf");
+        let icosphere_mesh = StaticMesh::new(icosphere_path);
 
-        let mesh = gltf.meshes().next().unwrap();
-        let primitive = mesh.primitives().next().unwrap();
+        let cube_path = std::path::Path::new(&"/home/rishflab/erlking/assets/cube.gltf");
+        let cube_mesh = StaticMesh::new(cube_path);
 
-        let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-
-        let index_data = match reader.read_indices().expect("") {
-            ReadIndices::U16(a) => a.collect::<Vec<u16>>(),
-            _ => panic!("index size not supported"),
-        };
-
-        let positions_reader = reader.read_positions().expect("no position data in gltf");
-
-        let tex_coords_reader = reader.read_tex_coords(0).expect("no tex coord data");
-
-        let zip = positions_reader.zip(tex_coords_reader.into_f32());
-
-        let vertex_data = zip
-            .map(|(pos, tex)| Vertex {
-                _pos: [pos[0], pos[1], pos[2], 1.0],
-                _tex_coord: tex,
-            })
-            .collect::<Vec<Vertex>>();
-
-        // Create the vertex and index buffers
-        let vertex_size = mem::size_of::<Vertex>();
-        // let (vertex_data, index_data) = create_vertices();
+        let mut mesh_data = MeshData::new();
+        mesh_data.insert_static_mesh(cube_mesh);
+        mesh_data.insert_static_mesh(icosphere_mesh);
 
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&vertex_data),
+            contents: bytemuck::cast_slice(&mesh_data.vertex_data()),
             usage: wgpu::BufferUsage::VERTEX,
         });
 
         let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(&index_data),
+            contents: bytemuck::cast_slice(&mesh_data.index_data()),
             usage: wgpu::BufferUsage::INDEX,
         });
 
-        let instance_data = world.cube_instance_data();
+        let (instance_data, _) = world.instance_data();
 
         let instance_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Instance Buffer"),
@@ -203,7 +176,7 @@ impl framework::Example for Example {
         });
 
         let camera = Camera::new(
-            cgmath::Point3::new(1.5f32, -5.0, 3.0),
+            cgmath::Point3::new(0.0, -20.0, 3.0),
             cgmath::Point3::new(0f32, 0.0, 0.0),
         );
         let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
@@ -271,7 +244,7 @@ impl framework::Example for Example {
             vertex_state: wgpu::VertexStateDescriptor {
                 index_format: wgpu::IndexFormat::Uint16,
                 vertex_buffers: &[wgpu::VertexBufferDescriptor {
-                    stride: vertex_size as wgpu::BufferAddress,
+                    stride: mem::size_of::<Vertex>() as wgpu::BufferAddress,
                     step_mode: wgpu::InputStepMode::Vertex,
                     attributes: &[
                         wgpu::VertexAttributeDescriptor {
@@ -297,18 +270,18 @@ impl framework::Example for Example {
             world,
             vertex_buf,
             index_buf,
-            index_count: index_data.len(),
             bind_group,
             uniform_buf,
             pipeline,
             instance_buf,
             camera,
+            static_mesh_handles: mesh_data.static_mesh_handles(),
         }
     }
 
     fn input(&mut self, event: winit::event::WindowEvent) {
-        match event {
-            WindowEvent::KeyboardInput { input, .. } => match input {
+        if let WindowEvent::KeyboardInput { input, .. } = event {
+            match input {
                 KeyboardInput {
                     state: ElementState::Pressed,
                     virtual_keycode: Some(VirtualKeyCode::Left),
@@ -326,8 +299,7 @@ impl framework::Example for Example {
                     self.camera.look_at += cgmath::vec3(-0.1, 0.0, 0.0);
                 }
                 _ => (),
-            },
-            _ => {}
+            }
         }
     }
 
@@ -362,11 +334,8 @@ impl framework::Example for Example {
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
 
-        queue.write_buffer(
-            &self.instance_buf,
-            0,
-            bytemuck::cast_slice(&self.world.cube_instance_data()),
-        );
+        let (instance_data, instance_ranges) = self.world.instance_data();
+        queue.write_buffer(&self.instance_buf, 0, bytemuck::cast_slice(&instance_data));
 
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -394,7 +363,10 @@ impl framework::Example for Example {
             rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
             rpass.pop_debug_group();
             rpass.insert_debug_marker("Draw!");
-            rpass.draw_indexed(0..self.index_count as u32, 0, 0..100);
+
+            for (handle, range) in self.static_mesh_handles.iter().zip(instance_ranges.iter()) {
+                rpass.draw_indexed(handle.indices.clone(), handle.base_vertex, range.clone());
+            }
         }
 
         queue.submit(Some(encoder.finish()));
