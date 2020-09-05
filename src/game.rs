@@ -9,8 +9,8 @@ impl World {
     pub fn two_cubes() -> Self {
         let cube1 = Cube {
             position: cgmath::Vector3::new(1.0, 0.0, 0.0),
-            rotation: Quaternion::from_axis_angle(Vector3::new(0.0, 0.0, 1.0), Deg(0.0)),
-            angular_velocity: Quaternion::from_axis_angle(Vector3::new(0.0, 0.0, 1.0), Deg(-1.0)),
+            rotation: Quaternion::from_axis_angle(Vector3::new(1.0, 0.0, 0.0), Deg(90.0)),
+            angular_velocity: Quaternion::from_axis_angle(Vector3::new(0.0, 1.0, 0.0), Deg(1.0)),
         };
 
         let cube2 = Cube {

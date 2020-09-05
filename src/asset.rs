@@ -18,7 +18,7 @@ pub enum GltfError {
 }
 
 pub fn load(_path: &Path) -> Result<(Gltf, Vec<Vec<u8>>), GltfError> {
-    let asset_path = std::path::Path::new(&"assets/icosphere.gltf");
+    let asset_path = std::path::Path::new(&"assets/grass_single.gltf");
 
     let gltf = gltf::Gltf::open(asset_path)?;
     let buffer_data = load_buffers(&gltf, asset_path)?;
