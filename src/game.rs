@@ -1,10 +1,14 @@
-use crate::renderer::{Instance, InstanceRaw};
+use crate::{
+    renderer::{Instance, InstanceRaw},
+    time::Timer,
+};
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use std::ops::Range;
 
 pub struct World {
     pub cubes: Vec<Cube>,
     pub icospheres: Vec<Icosphere>,
+    pub timer: Timer,
 }
 
 impl World {
@@ -40,10 +44,13 @@ impl World {
         World {
             cubes: vec![cube1, cube2],
             icospheres: vec![icosphere1, icosphere2],
+            timer: Timer::new(),
         }
     }
 
     pub fn update(&mut self) {
+        self.timer.tick();
+        println!("fps: {:?}", self.timer.fps());
         for cube in self.cubes.iter_mut() {
             cube.update()
         }
