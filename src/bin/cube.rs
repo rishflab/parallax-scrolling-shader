@@ -54,10 +54,10 @@ impl framework::Example for Example {
 
         let world = World::test();
 
-        let icosphere_path = std::path::Path::new(&"/home/rishflab/erlking/assets/icosphere.gltf");
+        let icosphere_path = std::path::Path::new(&"assets/icosphere.gltf");
         let icosphere_mesh = StaticMesh::new(icosphere_path);
 
-        let cube_path = std::path::Path::new(&"/home/rishflab/erlking/assets/cube.gltf");
+        let cube_path = std::path::Path::new(&"assets/cube.gltf");
         let cube_mesh = StaticMesh::new(cube_path);
 
         let mut mesh_data = MeshData::new();
