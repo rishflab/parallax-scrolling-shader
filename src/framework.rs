@@ -65,16 +65,10 @@ struct Setup {
 }
 
 async fn setup<E: Example>(title: &str) -> Setup {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let chrome_tracing_dir = std::env::var("WGPU_CHROME_TRACE");
-        subscriber::initialize_default_subscriber(
-            chrome_tracing_dir.as_ref().map(std::path::Path::new).ok(),
-        );
-    };
-
-    #[cfg(target_arch = "wasm32")]
-    console_log::init().expect("could not initialize logger");
+    let chrome_tracing_dir = std::env::var("WGPU_CHROME_TRACE");
+    subscriber::initialize_default_subscriber(
+        chrome_tracing_dir.as_ref().map(std::path::Path::new).ok(),
+    );
 
     let event_loop = EventLoop::new();
     let mut builder = winit::window::WindowBuilder::new();
@@ -151,61 +145,25 @@ fn start<E: Example>(
         queue,
     }: Setup,
 ) {
-    #[cfg(not(target_arch = "wasm32"))]
     let (mut pool, spawner) = {
         let local_pool = futures::executor::LocalPool::new();
         let spawner = local_pool.spawner();
         (local_pool, spawner)
     };
 
-    #[cfg(target_arch = "wasm32")]
-    let spawner = {
-        use futures::{future::LocalFutureObj, task::SpawnError};
-        use winit::platform::web::WindowExtWebSys;
-
-        struct WebSpawner {}
-        impl LocalSpawn for WebSpawner {
-            fn spawn_local_obj(
-                &self,
-                future: LocalFutureObj<'static, ()>,
-            ) -> Result<(), SpawnError> {
-                Ok(wasm_bindgen_futures::spawn_local(future))
-            }
-        }
-
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-
-        // On wasm, append the canvas to the document body
-        web_sys::window()
-            .and_then(|win| win.document())
-            .and_then(|doc| doc.body())
-            .and_then(|body| {
-                body.append_child(&web_sys::Element::from(window.canvas()))
-                    .ok()
-            })
-            .expect("couldn't append canvas to document body");
-
-        WebSpawner {}
-    };
-
     let mut sc_desc = wgpu::SwapChainDescriptor {
         usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-        // TODO: Allow srgb unconditionally
-        format: if cfg!(target_arch = "wasm32") {
-            wgpu::TextureFormat::Bgra8Unorm
-        } else {
-            wgpu::TextureFormat::Bgra8UnormSrgb
-        },
         width: size.width,
         height: size.height,
         present_mode: wgpu::PresentMode::Mailbox,
+        // TODO: Allow srgb unconditionally
+        format: wgpu::TextureFormat::Bgra8UnormSrgb,
     };
     let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
     log::info!("Initializing the example...");
     let mut example = E::init(&sc_desc, &device, &queue);
 
-    #[cfg(not(target_arch = "wasm32"))]
     let mut last_update_inst = Instant::now();
 
     log::info!("Entering render loop...");
@@ -214,29 +172,16 @@ fn start<E: Example>(
         *control_flow = if cfg!(feature = "metal-auto-capture") {
             ControlFlow::Exit
         } else {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(10))
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                ControlFlow::Poll
-            }
+            ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(10))
         };
         match event {
             event::Event::MainEventsCleared => {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    if last_update_inst.elapsed() > Duration::from_millis(20) {
-                        window.request_redraw();
-                        last_update_inst = Instant::now();
-                    }
-
-                    pool.run_until_stalled();
+                if last_update_inst.elapsed() > Duration::from_millis(20) {
+                    window.request_redraw();
+                    last_update_inst = Instant::now();
                 }
 
-                #[cfg(target_arch = "wasm32")]
-                window.request_redraw();
+                pool.run_until_stalled();
             }
             event::Event::WindowEvent {
                 event: WindowEvent::Resized(size),
@@ -281,22 +226,7 @@ fn start<E: Example>(
     });
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub fn run<E: Example>(title: &str) {
     let setup = futures::executor::block_on(setup::<E>(title));
     start::<E>(setup);
 }
-
-#[cfg(target_arch = "wasm32")]
-pub fn run<E: Example>(title: &str) {
-    let title = title.to_owned();
-    wasm_bindgen_futures::spawn_local(async move {
-        let setup = setup::<E>(&title).await;
-        start::<E>(setup);
-    });
-}
-
-// This allows treating the framework as a standalone example,
-// thus avoiding listing the example names in `Cargo.toml`.
-#[allow(dead_code)]
-fn main() {}
