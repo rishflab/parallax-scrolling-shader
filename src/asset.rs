@@ -25,6 +25,8 @@ pub struct Vertex {
     _tex_coord: [f32; 2],
 }
 
+pub type Index = u16;
+
 unsafe impl Pod for Vertex {}
 unsafe impl Zeroable for Vertex {}
 

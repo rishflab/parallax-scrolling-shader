@@ -1,9 +1,10 @@
 use crate::{
     asset::{MeshData, StaticMesh, StaticMeshHandle, Vertex},
     camera::Camera,
+    model::{DrawModel, Model},
     world::World,
 };
-use wgpu::util::DeviceExt;
+use wgpu::{util::DeviceExt, Buffer, BufferAddress, BufferDescriptor, MapMode};
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 fn create_texels(size: usize) -> Vec<u8> {
@@ -29,26 +30,20 @@ fn create_texels(size: usize) -> Vec<u8> {
         .collect()
 }
 
-pub(crate) struct Example {
+pub(crate) struct Renderer {
     world: World,
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
+    models: Vec<Model>,
     uniform_buf: wgpu::Buffer,
     instance_buf: wgpu::Buffer,
-    staging_vertex_buf: wgpu::Buffer,
-    staging_index_buf: wgpu::Buffer,
-    staging_uniform_buf: wgpu::Buffer,
-    staging_instance_buf: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
     camera: Camera,
-    static_mesh_handles: Vec<StaticMeshHandle>,
 }
 
-impl Example {
+impl Renderer {
     pub(crate) fn init(
         sc_desc: &wgpu::SwapChainDescriptor,
-        device: &wgpu::Device,
+        device: &mut wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self {
         use std::mem;
@@ -61,45 +56,35 @@ impl Example {
         let cube_path = std::path::Path::new(&"assets/cube.gltf");
         let cube_mesh = StaticMesh::new(cube_path);
 
-        let mut mesh_data = MeshData::new();
-        mesh_data.insert_static_mesh(cube_mesh);
-        mesh_data.insert_static_mesh(icosphere_mesh);
+        let cube_model = Model::new(device, cube_mesh.vertex_data, cube_mesh.index_data);
 
-        let staging_vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Staging Vertex Buffer"),
-            contents: bytemuck::cast_slice(&mesh_data.vertex_data()),
-            usage: wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE,
-        });
+        let icosphere_model = Model::new(
+            device,
+            icosphere_mesh.vertex_data,
+            icosphere_mesh.index_data,
+        );
 
-        let staging_index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Staging Index Buffer"),
-            contents: bytemuck::cast_slice(&mesh_data.index_data()),
-            usage: wgpu::BufferUsage::COPY_SRC | wgpu::BufferUsage::MAP_WRITE,
+        let camera = Camera::new(
+            cgmath::Point3::new(0.0, -20.0, 3.0),
+            cgmath::Point3::new(0f32, 0.0, 0.0),
+        );
+
+        let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+        let mx_ref: &[f32; 16] = mx_total.as_ref();
+
+        let uniform_buf_size = (bytemuck::cast_slice(mx_ref) as &[u8]).len() as u64;
+        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(mx_ref),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
         let (instance_data, _) = world.instance_data();
-
-        let staging_instance_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Staging Instance Buffer"),
-            contents: bytemuck::cast_slice(&instance_data),
-            usage: wgpu::BufferUsage::COPY_SRC,
-        });
-
-        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&mesh_data.vertex_data()),
-            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
-        });
-
-        let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(&mesh_data.index_data()),
-            usage: wgpu::BufferUsage::INDEX | wgpu::BufferUsage::COPY_DST,
-        });
-
-        let instance_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let instance_buf_size = (bytemuck::cast_slice(&instance_data) as &[u8]).len() as u64;
+        let instance_buf = device.create_buffer(&BufferDescriptor {
             label: Some("Instance Buffer"),
-            contents: bytemuck::cast_slice(&instance_data),
+            size: instance_buf_size,
+            mapped_at_creation: false,
             usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -112,7 +97,7 @@ impl Example {
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::UniformBuffer {
                         dynamic: false,
-                        min_binding_size: wgpu::BufferSize::new(64),
+                        min_binding_size: None,
                     },
                     count: None,
                 },
@@ -194,25 +179,6 @@ impl Example {
             ..Default::default()
         });
 
-        let camera = Camera::new(
-            cgmath::Point3::new(0.0, -20.0, 3.0),
-            cgmath::Point3::new(0f32, 0.0, 0.0),
-        );
-        let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-
-        let staging_uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Staging Uniform Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
-            usage: wgpu::BufferUsage::MAP_WRITE | wgpu::BufferUsage::COPY_SRC,
-        });
-
-        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -292,20 +258,14 @@ impl Example {
         });
 
         // Done
-        Example {
+        Renderer {
             world,
-            vertex_buf,
-            index_buf,
             instance_buf,
             uniform_buf,
-            staging_vertex_buf,
-            staging_index_buf,
-            staging_uniform_buf,
-            staging_instance_buf,
             bind_group,
             pipeline,
             camera,
-            static_mesh_handles: mesh_data.static_mesh_handles(),
+            models: vec![cube_model, icosphere_model],
         }
     }
 
@@ -346,26 +306,19 @@ impl Example {
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
-    pub(crate) fn update(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        sc_desc: &wgpu::SwapChainDescriptor,
-    ) {
+    pub(crate) fn update(&mut self, queue: &wgpu::Queue, sc_desc: &wgpu::SwapChainDescriptor) {
         self.world.update();
 
         let mx_total = self
             .camera
             .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&self.staging_uniform_buf, 0, bytemuck::cast_slice(mx_ref));
 
-        let (instance_data, instance_ranges) = self.world.instance_data();
-        queue.write_buffer(
-            &self.staging_instance_buf,
-            0,
-            bytemuck::cast_slice(&instance_data),
-        );
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+
+        let (instance_data, _instance_ranges) = self.world.instance_data();
+
+        queue.write_buffer(&self.instance_buf, 0, bytemuck::cast_slice(&instance_data));
     }
 
     pub(crate) fn render(
@@ -374,7 +327,7 @@ impl Example {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         _spawner: &impl futures::task::LocalSpawn,
-        sc_desc: &wgpu::SwapChainDescriptor,
+        _sc_desc: &wgpu::SwapChainDescriptor,
     ) {
         let (_, instance_ranges) = self.world.instance_data();
         let mut encoder =
@@ -396,17 +349,11 @@ impl Example {
                 }],
                 depth_stencil_attachment: None,
             });
-            rpass.push_debug_group("Prepare data for draw.");
-            rpass.set_pipeline(&self.pipeline);
-            rpass.set_bind_group(0, &self.bind_group, &[]);
-            rpass.set_index_buffer(self.index_buf.slice(..));
-            rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
-            rpass.pop_debug_group();
-            rpass.insert_debug_marker("Draw!");
 
-            for (handle, range) in self.static_mesh_handles.iter().zip(instance_ranges.iter()) {
-                rpass.draw_indexed(handle.indices.clone(), handle.base_vertex, range.clone());
-            }
+            rpass.set_pipeline(&self.pipeline);
+
+            rpass.draw_model(&self.models[0], 0..2, &self.bind_group);
+            rpass.draw_model(&self.models[1], 2..4, &self.bind_group);
         }
 
         queue.submit(Some(encoder.finish()));

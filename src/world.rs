@@ -1,5 +1,5 @@
 use crate::{
-    renderer::{Instance, InstanceRaw},
+    instance::{Instance, InstanceRaw},
     time::Timer,
 };
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};

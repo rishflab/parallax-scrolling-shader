@@ -1,6 +1,6 @@
-use futures::task::LocalSpawn;
+use crate::renderer::Renderer;
 #[cfg(not(target_arch = "wasm32"))]
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -20,39 +20,6 @@ pub enum ShaderStage {
     Compute,
 }
 
-pub trait Example: 'static + Sized {
-    fn optional_features() -> wgpu::Features {
-        wgpu::Features::empty()
-    }
-    fn required_features() -> wgpu::Features {
-        wgpu::Features::empty()
-    }
-    fn required_limits() -> wgpu::Limits {
-        wgpu::Limits::default()
-    }
-    fn init(
-        sc_desc: &wgpu::SwapChainDescriptor,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    ) -> Self;
-    fn resize(
-        &mut self,
-        sc_desc: &wgpu::SwapChainDescriptor,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-    );
-    fn input(&mut self, event: WindowEvent);
-    fn update(&mut self);
-    fn render(
-        &mut self,
-        frame: &wgpu::SwapChainTexture,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        spawner: &impl LocalSpawn,
-        sc_desc: &wgpu::SwapChainDescriptor,
-    );
-}
-
 struct Setup {
     window: winit::window::Window,
     event_loop: EventLoop<()>,
@@ -64,7 +31,7 @@ struct Setup {
     queue: wgpu::Queue,
 }
 
-async fn setup<E: Example>(title: &str) -> Setup {
+async fn setup(title: &str) -> Setup {
     let chrome_tracing_dir = std::env::var("WGPU_CHROME_TRACE");
     subscriber::initialize_default_subscriber(
         chrome_tracing_dir.as_ref().map(std::path::Path::new).ok(),
@@ -97,8 +64,8 @@ async fn setup<E: Example>(title: &str) -> Setup {
         .await
         .unwrap();
 
-    let optional_features = E::optional_features();
-    let required_features = E::required_features();
+    let optional_features = wgpu::Features::empty();
+    let required_features = wgpu::Features::empty();
     let adapter_features = adapter.features();
     assert!(
         adapter_features.contains(required_features),
@@ -106,7 +73,7 @@ async fn setup<E: Example>(title: &str) -> Setup {
         required_features - adapter_features
     );
 
-    let needed_limits = E::required_limits();
+    let needed_limits = wgpu::Limits::default();
 
     let trace_dir = std::env::var("WGPU_TRACE");
     let (device, queue) = adapter
@@ -133,7 +100,7 @@ async fn setup<E: Example>(title: &str) -> Setup {
     }
 }
 
-fn start<E: Example>(
+fn start(
     Setup {
         window,
         event_loop,
@@ -141,7 +108,7 @@ fn start<E: Example>(
         size,
         surface,
         adapter,
-        device,
+        mut device,
         queue,
     }: Setup,
 ) {
@@ -162,24 +129,18 @@ fn start<E: Example>(
     let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
     log::info!("Initializing the example...");
-    let mut example = E::init(&sc_desc, &device, &queue);
+    let mut example = Renderer::init(&sc_desc, &mut device, &queue);
 
-    let mut last_update_inst = Instant::now();
+    let mut _last_update_inst = Instant::now();
 
     log::info!("Entering render loop...");
     event_loop.run(move |event, _, control_flow| {
         let _ = (&instance, &adapter); // force ownership by the closure
-        *control_flow = if cfg!(feature = "metal-auto-capture") {
-            ControlFlow::Exit
-        } else {
-            ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(10))
-        };
+
         match event {
             event::Event::MainEventsCleared => {
-                if last_update_inst.elapsed() > Duration::from_millis(20) {
-                    window.request_redraw();
-                    last_update_inst = Instant::now();
-                }
+                window.request_redraw();
+                _last_update_inst = Instant::now();
 
                 pool.run_until_stalled();
             }
@@ -218,7 +179,7 @@ fn start<E: Example>(
                             .expect("Failed to acquire next swap chain texture!")
                     }
                 };
-                example.update();
+                example.update(&queue, &sc_desc);
                 example.render(&frame.output, &device, &queue, &spawner, &sc_desc);
             }
             _ => (),
@@ -226,7 +187,7 @@ fn start<E: Example>(
     });
 }
 
-pub fn run<E: Example>(title: &str) {
-    let setup = futures::executor::block_on(setup::<E>(title));
-    start::<E>(setup);
+pub fn run(title: &str) {
+    let setup = futures::executor::block_on(setup(title));
+    start(setup);
 }
