@@ -20,7 +20,8 @@ thiserror = "1.0"
 base64 = "0.12"
 glam = "0.9"
 log = "0.4"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", package = "wgpu"}
+wgpu = "0.6"
+hecs = "0.2"
 
 #Note: we may consider switching this to "dev-dependencies" if users
 # want to opt into X11 explicitly.

@@ -1,41 +1,16 @@
 use crate::{
     asset::{MeshData, StaticMesh, StaticMeshHandle, Vertex},
     camera::Camera,
-    model::{DrawModel, Model},
-    world::World,
+    instance::InstanceRaw,
+    model::{DrawModel, Model, MAX_INSTANCES},
+    scene::Scene,
 };
 use wgpu::{util::DeviceExt, Buffer, BufferAddress, BufferDescriptor, MapMode};
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
-fn create_texels(size: usize) -> Vec<u8> {
-    use std::iter;
-
-    (0..size * size)
-        .flat_map(|id| {
-            // get high five for recognizing this ;)
-            let cx = 3.0 * (id % size) as f32 / (size - 1) as f32 - 2.0;
-            let cy = 2.0 * (id / size) as f32 / (size - 1) as f32 - 1.0;
-            let (mut x, mut y, mut count) = (cx, cy, 0);
-            while count < 0xFF && x * x + y * y < 4.0 {
-                let old_x = x;
-                x = x * x - y * y + cx;
-                y = 2.0 * old_x * y + cy;
-                count += 1;
-            }
-            iter::once(0xFF - (count * 5) as u8)
-                .chain(iter::once(0xFF - (count * 15) as u8))
-                .chain(iter::once(0xFF - (count * 50) as u8))
-                .chain(iter::once(1))
-        })
-        .collect()
-}
-
 pub(crate) struct Renderer {
-    world: World,
     models: Vec<Model>,
-    uniform_buf: wgpu::Buffer,
-    instance_buf: wgpu::Buffer,
-    bind_group: wgpu::BindGroup,
+    uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     camera: Camera,
 }
@@ -48,22 +23,6 @@ impl Renderer {
     ) -> Self {
         use std::mem;
 
-        let world = World::test();
-
-        let icosphere_path = std::path::Path::new(&"assets/icosphere.gltf");
-        let icosphere_mesh = StaticMesh::new(icosphere_path);
-
-        let cube_path = std::path::Path::new(&"assets/cube.gltf");
-        let cube_mesh = StaticMesh::new(cube_path);
-
-        let cube_model = Model::new(device, cube_mesh.vertex_data, cube_mesh.index_data);
-
-        let icosphere_model = Model::new(
-            device,
-            icosphere_mesh.vertex_data,
-            icosphere_mesh.index_data,
-        );
-
         let camera = Camera::new(
             cgmath::Point3::new(0.0, -20.0, 3.0),
             cgmath::Point3::new(0f32, 0.0, 0.0),
@@ -73,22 +32,15 @@ impl Renderer {
         let mx_ref: &[f32; 16] = mx_total.as_ref();
 
         let uniform_buf_size = (bytemuck::cast_slice(mx_ref) as &[u8]).len() as u64;
-        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::cast_slice(mx_ref),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
-        let (instance_data, _) = world.instance_data();
-        let instance_buf_size = (bytemuck::cast_slice(&instance_data) as &[u8]).len() as u64;
-        let instance_buf = device.create_buffer(&BufferDescriptor {
-            label: Some("Instance Buffer"),
-            size: instance_buf_size,
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
-        });
+        let uniform_buffer_binding_resource =
+            wgpu::BindingResource::Buffer(uniform_buffer.slice(..));
 
-        // Create pipeline layout
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
@@ -129,78 +81,35 @@ impl Renderer {
                 },
             ],
         });
+
+        let icosphere_path = std::path::Path::new(&"assets/icosphere.gltf");
+        let icosphere_mesh = StaticMesh::new(icosphere_path);
+
+        let cube_path = std::path::Path::new(&"assets/cube.gltf");
+        let cube_mesh = StaticMesh::new(cube_path);
+
+        let cube_model = Model::new(
+            device,
+            queue,
+            &bind_group_layout,
+            &uniform_buffer_binding_resource,
+            cube_mesh.vertex_data,
+            cube_mesh.index_data,
+        );
+
+        let icosphere_model = Model::new(
+            device,
+            queue,
+            &bind_group_layout,
+            &uniform_buffer_binding_resource,
+            icosphere_mesh.vertex_data,
+            icosphere_mesh.index_data,
+        );
+
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[&bind_group_layout],
             push_constant_ranges: &[],
-        });
-
-        // Create the texture
-        let size = 256u32;
-        let texels = create_texels(size as usize);
-        let texture_extent = wgpu::Extent3d {
-            width: size,
-            height: size,
-            depth: 1,
-        };
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: None,
-            size: texture_extent,
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            usage: wgpu::TextureUsage::SAMPLED | wgpu::TextureUsage::COPY_DST,
-        });
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        queue.write_texture(
-            wgpu::TextureCopyView {
-                texture: &texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-            },
-            &texels,
-            wgpu::TextureDataLayout {
-                offset: 0,
-                bytes_per_row: 4 * size,
-                rows_per_image: 0,
-            },
-            texture_extent,
-        );
-
-        // Create other resources
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Nearest,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        // Create bind group
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: instance_buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
-                },
-            ],
-            label: None,
         });
 
         // Create the render pipeline
@@ -259,10 +168,7 @@ impl Renderer {
 
         // Done
         Renderer {
-            world,
-            instance_buf,
-            uniform_buf,
-            bind_group,
+            uniform_buffer,
             pipeline,
             camera,
             models: vec![cube_model, icosphere_model],
@@ -303,22 +209,30 @@ impl Renderer {
             .camera
             .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
     }
 
-    pub(crate) fn update(&mut self, queue: &wgpu::Queue, sc_desc: &wgpu::SwapChainDescriptor) {
-        self.world.update();
-
+    pub(crate) fn update(
+        &mut self,
+        queue: &wgpu::Queue,
+        sc_desc: &wgpu::SwapChainDescriptor,
+        scene: Scene,
+    ) {
         let mx_total = self
             .camera
             .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
 
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
 
-        let (instance_data, _instance_ranges) = self.world.instance_data();
-
-        queue.write_buffer(&self.instance_buf, 0, bytemuck::cast_slice(&instance_data));
+        for i in 0..2 {
+            self.models[i].update_instance_buffer(scene.instanced_draws[i].clone(), queue);
+        }
+        // queue.write_buffer(
+        //     &self.instance_buffer,
+        //     0,
+        //     bytemuck::cast_slice(&instance_data),
+        // );
     }
 
     pub(crate) fn render(
@@ -329,7 +243,6 @@ impl Renderer {
         _spawner: &impl futures::task::LocalSpawn,
         _sc_desc: &wgpu::SwapChainDescriptor,
     ) {
-        let (_, instance_ranges) = self.world.instance_data();
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
@@ -352,8 +265,8 @@ impl Renderer {
 
             rpass.set_pipeline(&self.pipeline);
 
-            rpass.draw_model(&self.models[0], 0..2, &self.bind_group);
-            rpass.draw_model(&self.models[1], 2..4, &self.bind_group);
+            rpass.draw_model(&self.models[0], 0..2, &self.models[0].bind_group);
+            rpass.draw_model(&self.models[1], 0..2, &self.models[1].bind_group);
         }
 
         queue.submit(Some(encoder.finish()));

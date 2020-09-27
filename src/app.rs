@@ -1,4 +1,4 @@
-use crate::renderer::Renderer;
+use crate::{game::Game, renderer::Renderer};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 use winit::{
@@ -128,8 +128,10 @@ fn start(
     };
     let mut swap_chain = device.create_swap_chain(&surface, &sc_desc);
 
+    let mut game = crate::game::Game::new();
+
     log::info!("Initializing the example...");
-    let mut example = Renderer::init(&sc_desc, &mut device, &queue);
+    let mut renderer = Renderer::init(&sc_desc, &mut device, &queue);
 
     let mut _last_update_inst = Instant::now();
 
@@ -151,7 +153,7 @@ fn start(
                 log::info!("Resizing to {:?}", size);
                 sc_desc.width = if size.width == 0 { 1 } else { size.width };
                 sc_desc.height = if size.height == 0 { 1 } else { size.height };
-                example.resize(&sc_desc, &device, &queue);
+                renderer.resize(&sc_desc, &device, &queue);
                 swap_chain = device.create_swap_chain(&surface, &sc_desc);
             }
             event::Event::WindowEvent { event, .. } => match event {
@@ -167,7 +169,7 @@ fn start(
                 | WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
-                _ => example.input(event),
+                _ => renderer.input(event),
             },
             event::Event::RedrawRequested(_) => {
                 let frame = match swap_chain.get_current_frame() {
@@ -179,8 +181,9 @@ fn start(
                             .expect("Failed to acquire next swap chain texture!")
                     }
                 };
-                example.update(&queue, &sc_desc);
-                example.render(&frame.output, &device, &queue, &spawner, &sc_desc);
+
+                renderer.update(&queue, &sc_desc, game.run());
+                renderer.render(&frame.output, &device, &queue, &spawner, &sc_desc);
             }
             _ => (),
         }

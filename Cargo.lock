@@ -16,6 +16,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee2a4ec343196209d6594e19543ae87a39f96d5534d7174822a3ad825dd6ed7e"
 
 [[package]]
+name = "ahash"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0adac150c2dd5a9c864d054e07bda5e6bc010cd10036ea5f17e82a2f5867f735"
+
+[[package]]
 name = "andrew"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -375,6 +381,7 @@ dependencies = [
  "gfx-backend-vulkan",
  "glam",
  "gltf",
+ "hecs",
  "log",
  "objc",
  "rand 0.7.3",
@@ -407,12 +414,6 @@ dependencies = [
  "syn",
  "synstructure",
 ]
-
-[[package]]
-name = "fixedbitset"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
 
 [[package]]
 name = "foreign-types"
@@ -757,11 +758,20 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.8.2"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e91b62f79061a0bc2e046024cb7ba44b08419ed238ecbd9adbd787434b9e8c25"
+checksum = "00d63df3d41950fb462ed38308eea019113ad1508da725bbedcd0fa5a85ef5f7"
 dependencies = [
- "autocfg 1.0.1",
+ "ahash",
+]
+
+[[package]]
+name = "hecs"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab00cb6b57ddcf099e2e7ad770f9fe5d8f76b5797dd43ac71ed7caef13283937"
+dependencies = [
+ "hashbrown",
 ]
 
 [[package]]
@@ -771,16 +781,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93a1bb8316a44459a7d14253c4d28dd7395cbd23cc04a68c46e851b8e46d64b1"
 dependencies = [
  "atom",
-]
-
-[[package]]
-name = "indexmap"
-version = "1.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86b45e59b16c76b11bf9738fd5d38879d3bd28ad292d7b313608becb17ae2df9"
-dependencies = [
- "autocfg 1.0.1",
- "hashbrown",
 ]
 
 [[package]]
@@ -1014,13 +1014,13 @@ dependencies = [
 [[package]]
 name = "naga"
 version = "0.2.0"
-source = "git+https://github.com/gfx-rs/naga?rev=bd9efe5915e548b9a2ec1f3d3e9296c90b31e69a#bd9efe5915e548b9a2ec1f3d3e9296c90b31e69a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0873deb76cf44b7454fba7b2ba6a89d3de70c08aceffd2c489379b3d9d08e661"
 dependencies = [
  "bitflags",
  "fxhash",
  "log",
  "num-traits",
- "petgraph",
  "spirv_headers",
  "thiserror",
 ]
@@ -1216,16 +1216,6 @@ name = "percent-encoding"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
-
-[[package]]
-name = "petgraph"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "467d164a6de56270bd7c4d070df81d07beace25012d5103ced4e9ff08d6afdb7"
-dependencies = [
- "fixedbitset",
- "indexmap",
-]
 
 [[package]]
 name = "pin-project"
@@ -2028,7 +2018,8 @@ dependencies = [
 [[package]]
 name = "wgpu"
 version = "0.6.0"
-source = "git+https://github.com/gfx-rs/wgpu-rs#13248eaf872b54ec5898f8a3ef9def85bc0296e0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "549160f188eef412ac978499ddf0ceadad4c9159bb1160f9e6b9d4cc8ee977dc"
 dependencies = [
  "arrayvec",
  "futures",
@@ -2049,8 +2040,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "0.6.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=bba82724a84e22dd23cd341a06be6909a3511370#bba82724a84e22dd23cd341a06be6909a3511370"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "317d19c2876fc26d5bc15fe986a0d2d28958337e639323fcaded23a7cf8865b9"
 dependencies = [
  "arrayvec",
  "bitflags",
@@ -2088,8 +2080,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "0.6.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=bba82724a84e22dd23cd341a06be6909a3511370#bba82724a84e22dd23cd341a06be6909a3511370"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e3529528e608b54838ee618c3923b0f46e6db0334cfc6c42a16cf4ceb3bdb57"
 dependencies = [
  "bitflags",
 ]

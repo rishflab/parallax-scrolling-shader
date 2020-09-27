@@ -1,7 +1,7 @@
 extern crate erlking;
 
-use erlking::framework;
+use erlking::app;
 
 fn main() {
-    framework::run("cube");
+    app::run("cube");
 }
