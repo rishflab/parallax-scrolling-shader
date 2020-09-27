@@ -1,11 +1,10 @@
 use crate::{
-    asset::{MeshData, StaticMesh, StaticMeshHandle, Vertex},
+    asset::{StaticMesh, Vertex},
     camera::Camera,
-    instance::InstanceRaw,
-    model::{DrawModel, Model, MAX_INSTANCES},
+    model::{DrawModel, Model},
     scene::Scene,
 };
-use wgpu::{util::DeviceExt, Buffer, BufferAddress, BufferDescriptor, MapMode};
+use wgpu::util::DeviceExt;
 use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 pub(crate) struct Renderer {
@@ -31,7 +30,6 @@ impl Renderer {
         let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
         let mx_ref: &[f32; 16] = mx_total.as_ref();
 
-        let uniform_buf_size = (bytemuck::cast_slice(mx_ref) as &[u8]).len() as u64;
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
             contents: bytemuck::cast_slice(mx_ref),
@@ -225,14 +223,9 @@ impl Renderer {
 
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
 
-        for i in 0..2 {
+        for i in 0..self.models.len() {
             self.models[i].update_instance_buffer(scene.instanced_draws[i].clone(), queue);
         }
-        // queue.write_buffer(
-        //     &self.instance_buffer,
-        //     0,
-        //     bytemuck::cast_slice(&instance_data),
-        // );
     }
 
     pub(crate) fn render(

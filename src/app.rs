@@ -1,4 +1,4 @@
-use crate::{game::Game, renderer::Renderer};
+use crate::renderer::Renderer;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 use winit::{

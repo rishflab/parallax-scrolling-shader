@@ -1,8 +1,5 @@
-use crate::{
-    asset::Vertex,
-    instance::{Instance, InstanceRaw},
-};
-use failure::_core::mem::size_of_val;
+use crate::{asset::Vertex, instance::InstanceRaw};
+
 use std::ops::Range;
 use wgpu::util::DeviceExt;
 

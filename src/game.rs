@@ -5,7 +5,6 @@ use crate::{
 };
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use hecs::*;
-use std::ops::Range;
 
 pub struct Position(Vector3<f32>);
 pub struct Rotation(Quaternion<f32>);
@@ -36,7 +35,7 @@ impl Game {
         let cube2 = (
             Position(cgmath::Vector3::new(0.0, 0.0, 0.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(1.0, 0.0, 0.0),
                 Deg(0.0),
             )),
             AngularVelocity(Quaternion::from_axis_angle(
@@ -49,7 +48,7 @@ impl Game {
         let icosphere1 = (
             Position(cgmath::Vector3::new(-3.0, -1.0, 0.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 1.0),
+                Vector3::new(1.0, 0.0, 1.0),
                 Deg(0.0),
             )),
             AngularVelocity(Quaternion::from_axis_angle(
@@ -62,7 +61,7 @@ impl Game {
         let icosphere2 = (
             Position(cgmath::Vector3::new(3.0, 1.0, -1.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 1.0),
+                Vector3::new(1.0, 0.0, 1.0),
                 Deg(0.0),
             )),
             AngularVelocity(Quaternion::from_axis_angle(
@@ -85,7 +84,7 @@ impl Game {
 
     fn rotate_objects(&self) {
         for (_, (rot, ang_vel)) in &mut self.world.query::<(&mut Rotation, &AngularVelocity)>() {
-            rot.0 = rot.0 * ang_vel.0;
+            rot.0 = ang_vel.0 * rot.0;
         }
     }
 
