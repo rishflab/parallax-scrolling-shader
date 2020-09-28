@@ -1,20 +1,41 @@
-pub const UP_VEC: cgmath::Vector3<f32> = cgmath::Vector3::new(0.0, 0.0, 1.0);
+use glam;
 
 pub struct Camera {
-    pub eye: cgmath::Point3<f32>,
-    pub look_at: cgmath::Point3<f32>,
+    pub eye: glam::Vec3,
+    pub look_at: glam::Vec3,
+    pub height: f32,
+    pub aspect_ratio: f32,
+    pub near: f32,
+    pub far: f32,
 }
 
 impl Camera {
-    pub fn new(eye: cgmath::Point3<f32>, look_at: cgmath::Point3<f32>) -> Self {
-        Camera { eye, look_at }
+    pub fn new(eye: glam::Vec3, look_at: glam::Vec3, height: f32, aspect_ratio: f32) -> Self {
+        Camera {
+            eye,
+            look_at,
+            height,
+            aspect_ratio,
+            near: 0.0,
+            far: 1000.0,
+        }
     }
-    pub fn generate_matrix(&self, aspect_ratio: f32) -> cgmath::Matrix4<f32> {
-        let mx_projection = cgmath::perspective(cgmath::Deg(45f32), aspect_ratio, 1.0, 100.0);
-        let mx_view = cgmath::Matrix4::look_at(self.eye, self.look_at, UP_VEC);
-        mx_projection * mx_view
+    pub fn generate_matrix(&self) -> glam::Mat4 {
+        let mx_projection = glam::Mat4::orthographic_lh(
+            -self.height * self.aspect_ratio / 2.0,
+            self.height * self.aspect_ratio / 2.0,
+            -self.height / 2.0,
+            self.height / 2.0,
+            self.near,
+            self.far,
+        );
+
+        let _mx_view =
+            glam::Mat4::look_at_lh(self.eye, self.look_at, glam::Vec3::new(0.0, 1.0, 0.0));
+        mx_projection
     }
-    pub fn update(&mut self, eye: cgmath::Point3<f32>, look_at: cgmath::Point3<f32>) {
+
+    pub fn update(&mut self, eye: glam::Vec3, look_at: glam::Vec3) {
         self.eye = eye;
         self.look_at = look_at;
     }

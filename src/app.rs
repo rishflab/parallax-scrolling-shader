@@ -1,17 +1,9 @@
 use crate::renderer::Renderer;
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::Instant;
+
 use winit::{
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
-
-#[allow(dead_code)]
-pub fn cast_slice<T>(data: &[T]) -> &[u8] {
-    use std::{mem::size_of, slice::from_raw_parts};
-
-    unsafe { from_raw_parts(data.as_ptr() as *const u8, data.len() * size_of::<T>()) }
-}
 
 #[allow(dead_code)]
 pub enum ShaderStage {
@@ -32,19 +24,10 @@ struct Setup {
 }
 
 async fn setup(title: &str) -> Setup {
-    let chrome_tracing_dir = std::env::var("WGPU_CHROME_TRACE");
-    subscriber::initialize_default_subscriber(
-        chrome_tracing_dir.as_ref().map(std::path::Path::new).ok(),
-    );
-
     let event_loop = EventLoop::new();
     let mut builder = winit::window::WindowBuilder::new();
     builder = builder.with_title(title);
-    #[cfg(windows_OFF)] // TODO
-    {
-        use winit::platform::windows::WindowBuilderExtWindows;
-        builder = builder.with_no_redirection_bitmap(true);
-    }
+
     let window = builder.build(&event_loop).unwrap();
 
     log::info!("Initializing the surface...");
@@ -112,12 +95,6 @@ fn start(
         queue,
     }: Setup,
 ) {
-    let (mut pool, spawner) = {
-        let local_pool = futures::executor::LocalPool::new();
-        let spawner = local_pool.spawner();
-        (local_pool, spawner)
-    };
-
     let mut sc_desc = wgpu::SwapChainDescriptor {
         usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
         width: size.width,
@@ -133,8 +110,6 @@ fn start(
     log::info!("Initializing the example...");
     let mut renderer = Renderer::init(&sc_desc, &mut device, &queue);
 
-    let mut _last_update_inst = Instant::now();
-
     log::info!("Entering render loop...");
     event_loop.run(move |event, _, control_flow| {
         let _ = (&instance, &adapter); // force ownership by the closure
@@ -142,9 +117,6 @@ fn start(
         match event {
             event::Event::MainEventsCleared => {
                 window.request_redraw();
-                _last_update_inst = Instant::now();
-
-                pool.run_until_stalled();
             }
             event::Event::WindowEvent {
                 event: WindowEvent::Resized(size),
@@ -169,7 +141,7 @@ fn start(
                 | WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
-                _ => renderer.input(event),
+                _ => game.capture_input(event),
             },
             event::Event::RedrawRequested(_) => {
                 let frame = match swap_chain.get_current_frame() {
@@ -182,8 +154,9 @@ fn start(
                     }
                 };
 
-                renderer.update(&queue, &sc_desc, game.run());
-                renderer.render(&frame.output, &device, &queue, &spawner, &sc_desc);
+                let scene = game.run();
+
+                renderer.render(&frame.output, &device, &queue, &sc_desc, scene);
             }
             _ => (),
         }

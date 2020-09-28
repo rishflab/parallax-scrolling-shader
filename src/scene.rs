@@ -1,5 +1,6 @@
 use crate::instance::InstanceRaw;
+use std::collections::HashMap;
 
 pub struct Scene {
-    pub instanced_draws: Vec<Vec<InstanceRaw>>,
+    pub sprite_instances: HashMap<String, Vec<InstanceRaw>>,
 }

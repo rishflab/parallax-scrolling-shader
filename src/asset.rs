@@ -19,10 +19,10 @@ pub enum GltfError {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Vertex {
-    _pos: [f32; 4],
-    _tex_coord: [f32; 2],
+    pub(crate) _pos: [f32; 4],
+    pub(crate) _tex_coord: [f32; 2],
 }
 
 pub type Index = u16;

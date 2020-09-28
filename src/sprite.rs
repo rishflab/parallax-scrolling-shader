@@ -1,11 +1,15 @@
-use crate::{asset::Vertex, instance::InstanceRaw};
-
-use std::ops::Range;
+use crate::{
+    asset::{Index, Vertex},
+    instance::InstanceRaw,
+};
+use image::GenericImageView;
+use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
 pub const MAX_INSTANCES: u64 = 1024;
 
-pub struct Model {
+pub struct Sprite {
+    pub id: String,
     pub(crate) vertex_buffer: wgpu::Buffer,
     pub(crate) index_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
@@ -13,15 +17,21 @@ pub struct Model {
     num_indices: u32,
 }
 
-impl Model {
+impl Sprite {
     pub fn new(
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
         bind_group_layout: &wgpu::BindGroupLayout,
         uniform_buffer_binding_resource: &wgpu::BindingResource,
-        vertex_data: Vec<Vertex>,
-        index_data: Vec<u16>,
+        path: &Path,
+        id: String,
     ) -> Self {
+        let image = image::open(path).unwrap();
+        let (tex_width, tex_height) = image.dimensions();
+        let aspect_ratio = tex_width as f32 / tex_height as f32;
+
+        let (vertex_data, index_data) = create_vertices(aspect_ratio);
+
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::cast_slice(&vertex_data),
@@ -42,12 +52,11 @@ impl Model {
             mapped_at_creation: false,
         });
 
-        // Create the texture
-        let size = 256u32;
-        let texels = create_texels(size as usize);
+        let texels = image::open(path).unwrap().to_rgba().to_vec();
+
         let texture_extent = wgpu::Extent3d {
-            width: size,
-            height: size,
+            width: tex_width,
+            height: tex_height,
             depth: 1,
         };
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -69,7 +78,7 @@ impl Model {
             &texels,
             wgpu::TextureDataLayout {
                 offset: 0,
-                bytes_per_row: 4 * size,
+                bytes_per_row: 4 * tex_width,
                 rows_per_image: 0,
             },
             texture_extent,
@@ -83,6 +92,7 @@ impl Model {
             mag_filter: wgpu::FilterMode::Nearest,
             min_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Nearest,
+            anisotropy_clamp: core::num::NonZeroU8::new(16),
             ..Default::default()
         });
 
@@ -116,6 +126,7 @@ impl Model {
             instance_buffer,
             bind_group,
             num_indices: index_data.len() as u32,
+            id,
         }
     }
 
@@ -128,25 +139,25 @@ impl Model {
     }
 }
 
-pub trait DrawModel<'a, 'b>
+pub trait DrawSprite<'a, 'b>
 where
     'b: 'a,
 {
-    fn draw_model(
+    fn draw_sprite(
         &mut self,
-        model: &'b Model,
+        model: &'b Sprite,
         instances: Range<u32>,
         bind_group: &'b wgpu::BindGroup,
     );
 }
 
-impl<'a, 'b> DrawModel<'a, 'b> for wgpu::RenderPass<'a>
+impl<'a, 'b> DrawSprite<'a, 'b> for wgpu::RenderPass<'a>
 where
     'b: 'a,
 {
-    fn draw_model(
+    fn draw_sprite(
         &mut self,
-        model: &'b Model,
+        model: &'b Sprite,
         instances: Range<u32>,
         bind_group: &'b wgpu::BindGroup,
     ) {
@@ -157,25 +168,27 @@ where
     }
 }
 
-fn create_texels(size: usize) -> Vec<u8> {
-    use std::iter;
+fn create_vertices(_aspect_ratio: f32) -> (Vec<Vertex>, Vec<Index>) {
+    let vertex_data = [
+        Vertex {
+            _pos: [-1.0, -1.0, 0.0, 1.0],
+            _tex_coord: [0.0, 1.0],
+        },
+        Vertex {
+            _pos: [1.0, -1.0, 0.0, 1.0],
+            _tex_coord: [1.0, 1.0],
+        },
+        Vertex {
+            _pos: [1.0, 1.0, 0.0, 1.0],
+            _tex_coord: [1.0, 0.0],
+        },
+        Vertex {
+            _pos: [-1.0, 1.0, 0.0, 1.0],
+            _tex_coord: [0.0, 0.0],
+        },
+    ];
 
-    (0..size * size)
-        .flat_map(|id| {
-            // get high five for recognizing this ;)
-            let cx = 3.0 * (id % size) as f32 / (size - 1) as f32 - 2.0;
-            let cy = 2.0 * (id / size) as f32 / (size - 1) as f32 - 1.0;
-            let (mut x, mut y, mut count) = (cx, cy, 0);
-            while count < 0xFF && x * x + y * y < 4.0 {
-                let old_x = x;
-                x = x * x - y * y + cx;
-                y = 2.0 * old_x * y + cy;
-                count += 1;
-            }
-            iter::once(0xFF - (count * 5) as u8)
-                .chain(iter::once(0xFF - (count * 15) as u8))
-                .chain(iter::once(0xFF - (count * 50) as u8))
-                .chain(iter::once(1))
-        })
-        .collect()
+    let index_data: &[u16] = &[0, 1, 2, 2, 3, 0];
+
+    (vertex_data.to_vec(), index_data.to_vec())
 }

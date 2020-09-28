@@ -1,14 +1,16 @@
 use crate::{
-    asset::{StaticMesh, Vertex},
+    asset::Vertex,
     camera::Camera,
-    model::{DrawModel, Model},
     scene::Scene,
+    sprite::{DrawSprite, Sprite},
 };
-use wgpu::util::DeviceExt;
-use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
+use std::path::Path;
+use wgpu::{
+    util::DeviceExt, BlendFactor, BlendOperation, CullMode, FrontFace, RasterizationStateDescriptor,
+};
 
 pub(crate) struct Renderer {
-    models: Vec<Model>,
+    sprites: Vec<Sprite>,
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     camera: Camera,
@@ -23,11 +25,13 @@ impl Renderer {
         use std::mem;
 
         let camera = Camera::new(
-            cgmath::Point3::new(0.0, -20.0, 3.0),
-            cgmath::Point3::new(0f32, 0.0, 0.0),
+            glam::Vec3::new(0.0, 10.0, 0.0),
+            glam::Vec3::new(0.0, 0.0, 0.0),
+            6.0,
+            sc_desc.width as f32 / sc_desc.height as f32,
         );
 
-        let mx_total = camera.generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+        let mx_total = camera.generate_matrix();
         let mx_ref: &[f32; 16] = mx_total.as_ref();
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -65,7 +69,7 @@ impl Renderer {
                     binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
-                        multisampled: false,
+                        multisampled: true,
                         component_type: wgpu::TextureComponentType::Float,
                         dimension: wgpu::TextureViewDimension::D2,
                     },
@@ -80,29 +84,25 @@ impl Renderer {
             ],
         });
 
-        let icosphere_path = std::path::Path::new(&"assets/icosphere.gltf");
-        let icosphere_mesh = StaticMesh::new(icosphere_path);
-
-        let cube_path = std::path::Path::new(&"assets/cube.gltf");
-        let cube_mesh = StaticMesh::new(cube_path);
-
-        let cube_model = Model::new(
-            device,
-            queue,
-            &bind_group_layout,
-            &uniform_buffer_binding_resource,
-            cube_mesh.vertex_data,
-            cube_mesh.index_data,
-        );
-
-        let icosphere_model = Model::new(
-            device,
-            queue,
-            &bind_group_layout,
-            &uniform_buffer_binding_resource,
-            icosphere_mesh.vertex_data,
-            icosphere_mesh.index_data,
-        );
+        // Load sprites onto GPU
+        let sprites = vec![
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/pepe.png"),
+                "pepe".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/leaves.png"),
+                "leaves".to_string(),
+            ),
+        ];
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -127,16 +127,27 @@ impl Renderer {
                 module: &fs_module,
                 entry_point: "main",
             }),
-            rasterization_state: Some(wgpu::RasterizationStateDescriptor {
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: wgpu::CullMode::Back,
-                ..Default::default()
+            rasterization_state: Some(RasterizationStateDescriptor {
+                front_face: FrontFace::Ccw,
+                cull_mode: CullMode::None,
+                depth_bias: 0,
+                depth_bias_slope_scale: 0.0,
+                depth_bias_clamp: 0.0,
+                clamp_depth: false,
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
             color_states: &[wgpu::ColorStateDescriptor {
                 format: sc_desc.format,
-                color_blend: wgpu::BlendDescriptor::REPLACE,
-                alpha_blend: wgpu::BlendDescriptor::REPLACE,
+                color_blend: wgpu::BlendDescriptor {
+                    src_factor: BlendFactor::SrcAlpha,
+                    dst_factor: BlendFactor::OneMinusSrcAlpha,
+                    operation: BlendOperation::Add,
+                },
+                alpha_blend: wgpu::BlendDescriptor {
+                    src_factor: BlendFactor::One,
+                    dst_factor: BlendFactor::One,
+                    operation: BlendOperation::Add,
+                },
                 write_mask: wgpu::ColorWrite::ALL,
             }],
             depth_stencil_state: None,
@@ -169,31 +180,7 @@ impl Renderer {
             uniform_buffer,
             pipeline,
             camera,
-            models: vec![cube_model, icosphere_model],
-        }
-    }
-
-    pub(crate) fn input(&mut self, event: winit::event::WindowEvent) {
-        if let WindowEvent::KeyboardInput { input, .. } = event {
-            match input {
-                KeyboardInput {
-                    state: ElementState::Pressed,
-                    virtual_keycode: Some(VirtualKeyCode::Left),
-                    ..
-                } => {
-                    self.camera.eye += cgmath::vec3(0.1, 0.0, 0.0);
-                    self.camera.look_at += cgmath::vec3(0.1, 0.0, 0.0);
-                }
-                KeyboardInput {
-                    state: ElementState::Pressed,
-                    virtual_keycode: Some(VirtualKeyCode::Right),
-                    ..
-                } => {
-                    self.camera.eye += cgmath::vec3(-0.1, 0.0, 0.0);
-                    self.camera.look_at += cgmath::vec3(-0.1, 0.0, 0.0);
-                }
-                _ => (),
-            }
+            sprites,
         }
     }
 
@@ -203,29 +190,10 @@ impl Renderer {
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        let mx_total = self
-            .camera
-            .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
+        self.camera.aspect_ratio = sc_desc.width as f32 / sc_desc.height as f32;
+        let mx_total = self.camera.generate_matrix();
         let mx_ref: &[f32; 16] = mx_total.as_ref();
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
-    }
-
-    pub(crate) fn update(
-        &mut self,
-        queue: &wgpu::Queue,
-        sc_desc: &wgpu::SwapChainDescriptor,
-        scene: Scene,
-    ) {
-        let mx_total = self
-            .camera
-            .generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
-
-        for i in 0..self.models.len() {
-            self.models[i].update_instance_buffer(scene.instanced_draws[i].clone(), queue);
-        }
     }
 
     pub(crate) fn render(
@@ -233,9 +201,19 @@ impl Renderer {
         frame: &wgpu::SwapChainTexture,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        _spawner: &impl futures::task::LocalSpawn,
         _sc_desc: &wgpu::SwapChainDescriptor,
+        scene: Scene,
     ) {
+        let mx_total = self.camera.generate_matrix();
+        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
+
+        for sprite in self.sprites.iter_mut() {
+            if let Some(instances) = scene.sprite_instances.get(&sprite.id) {
+                sprite.update_instance_buffer(instances.clone(), queue);
+            }
+        }
+
         let mut encoder =
             device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
@@ -245,10 +223,10 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
-                            a: 1.0,
+                            r: 0.0,
+                            g: 0.0,
+                            b: 0.0,
+                            a: 0.0,
                         }),
                         store: true,
                     },
@@ -258,8 +236,11 @@ impl Renderer {
 
             rpass.set_pipeline(&self.pipeline);
 
-            rpass.draw_model(&self.models[0], 0..2, &self.models[0].bind_group);
-            rpass.draw_model(&self.models[1], 0..2, &self.models[1].bind_group);
+            for sprite in self.sprites.iter_mut() {
+                if let Some(instances) = scene.sprite_instances.get(&sprite.id) {
+                    rpass.draw_sprite(sprite, 0..instances.len() as u32, &sprite.bind_group);
+                }
+            }
         }
 
         queue.submit(Some(encoder.finish()));
