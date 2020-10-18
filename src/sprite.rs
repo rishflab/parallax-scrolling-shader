@@ -7,6 +7,7 @@ use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
 pub const MAX_INSTANCES: u64 = 1024;
+pub const PIXELS_PER_METRE: u32 = 512;
 
 pub struct Sprite {
     pub id: String,
@@ -28,9 +29,8 @@ impl Sprite {
     ) -> Self {
         let image = image::open(path).unwrap();
         let (tex_width, tex_height) = image.dimensions();
-        let aspect_ratio = tex_width as f32 / tex_height as f32;
 
-        let (vertex_data, index_data) = create_vertices(aspect_ratio);
+        let (vertex_data, index_data) = create_vertices(tex_width, tex_height, PIXELS_PER_METRE);
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -168,22 +168,24 @@ where
     }
 }
 
-fn create_vertices(aspect_ratio: f32) -> (Vec<Vertex>, Vec<Index>) {
+fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex>, Vec<Index>) {
+    let w = width as f32 / pixel_per_metre as f32;
+    let h = height as f32 / pixel_per_metre as f32;
     let vertex_data = [
         Vertex {
-            _pos: [-1.0 * aspect_ratio, -1.0, 0.0, 1.0],
+            _pos: [-w, -h, 0.0, 1.0],
             _tex_coord: [0.0, 1.0],
         },
         Vertex {
-            _pos: [1.0 * aspect_ratio, -1.0, 0.0, 1.0],
+            _pos: [w, -h, 0.0, 1.0],
             _tex_coord: [1.0, 1.0],
         },
         Vertex {
-            _pos: [1.0 * aspect_ratio, 1.0, 0.0, 1.0],
+            _pos: [w, h, 0.0, 1.0],
             _tex_coord: [1.0, 0.0],
         },
         Vertex {
-            _pos: [-1.0 * aspect_ratio, 1.0, 0.0, 1.0],
+            _pos: [-w, h, 0.0, 1.0],
             _tex_coord: [0.0, 0.0],
         },
     ];

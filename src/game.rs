@@ -12,6 +12,7 @@ use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 pub struct Position(Vector3<f32>);
 pub struct Rotation(Quaternion<f32>);
 pub struct AngularVelocity(Quaternion<f32>);
+pub struct Scale(f32);
 pub struct StaticMesh(usize);
 pub struct Sprite(String);
 pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
@@ -31,21 +32,23 @@ impl Game {
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
             )),
+            Scale(1.0),
             KeyboardInput(None),
             Sprite("pepe".to_string()),
         );
 
-        let pepe2 = (
+        let leaves = (
             Position(cgmath::Vector3::new(2.0, 2.0, 0.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
             )),
+            Scale(0.5),
             Sprite("leaves".to_string()),
         );
 
         world.spawn(pepe);
-        world.spawn(pepe2);
+        world.spawn(leaves);
 
         Game {
             world,
@@ -86,11 +89,15 @@ impl Game {
     fn build_scene(&self) -> Scene {
         let mut sprites: HashMap<String, Vec<InstanceRaw>> = HashMap::default();
 
-        for (_, (pos, rot, sprite_id)) in &mut self.world.query::<(&Position, &Rotation, &Sprite)>()
+        for (_, (pos, rot, scale, sprite_id)) in
+            &mut self
+                .world
+                .query::<(&Position, &Rotation, &Scale, &Sprite)>()
         {
             let instance_raw = InstanceRaw::from(Instance {
                 position: pos.0,
                 rotation: rot.0,
+                scale: scale.0,
             });
             if let Some(instances) = sprites.get(&sprite_id.0) {
                 let mut new = instances.clone();
