@@ -168,22 +168,22 @@ where
     }
 }
 
-fn create_vertices(_aspect_ratio: f32) -> (Vec<Vertex>, Vec<Index>) {
+fn create_vertices(aspect_ratio: f32) -> (Vec<Vertex>, Vec<Index>) {
     let vertex_data = [
         Vertex {
-            _pos: [-1.0, -1.0, 0.0, 1.0],
+            _pos: [-1.0 * aspect_ratio, -1.0, 0.0, 1.0],
             _tex_coord: [0.0, 1.0],
         },
         Vertex {
-            _pos: [1.0, -1.0, 0.0, 1.0],
+            _pos: [1.0 * aspect_ratio, -1.0, 0.0, 1.0],
             _tex_coord: [1.0, 1.0],
         },
         Vertex {
-            _pos: [1.0, 1.0, 0.0, 1.0],
+            _pos: [1.0 * aspect_ratio, 1.0, 0.0, 1.0],
             _tex_coord: [1.0, 0.0],
         },
         Vertex {
-            _pos: [-1.0, 1.0, 0.0, 1.0],
+            _pos: [-1.0 * aspect_ratio, 1.0, 0.0, 1.0],
             _tex_coord: [0.0, 0.0],
         },
     ];
