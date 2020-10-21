@@ -169,8 +169,8 @@ where
 }
 
 fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex>, Vec<Index>) {
-    let w = width as f32 / pixel_per_metre as f32;
-    let h = height as f32 / pixel_per_metre as f32;
+    let w = (width as f32 / pixel_per_metre as f32) / 2.0;
+    let h = (height as f32 / pixel_per_metre as f32) / 2.0;
     let vertex_data = [
         Vertex {
             _pos: [-w, -h, 0.0, 1.0],
