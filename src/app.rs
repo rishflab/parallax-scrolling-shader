@@ -1,6 +1,7 @@
 use crate::renderer::Renderer;
 
 use winit::{
+    dpi::LogicalSize,
     event::{self, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
@@ -26,7 +27,10 @@ struct Setup {
 async fn setup(title: &str) -> Setup {
     let event_loop = EventLoop::new();
     let mut builder = winit::window::WindowBuilder::new();
-    builder = builder.with_title(title);
+    builder = builder
+        .with_title(title)
+        .with_inner_size(LogicalSize::new(1280.0, 720.0))
+        .with_resizable(true);
 
     let window = builder.build(&event_loop).unwrap();
 
