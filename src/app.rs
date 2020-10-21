@@ -29,7 +29,7 @@ async fn setup(title: &str) -> Setup {
     let mut builder = winit::window::WindowBuilder::new();
     builder = builder
         .with_title(title)
-        .with_inner_size(LogicalSize::new(1280.0, 720.0))
+        .with_inner_size(LogicalSize::new(1600.0, 900.0))
         .with_resizable(true);
 
     let window = builder.build(&event_loop).unwrap();
