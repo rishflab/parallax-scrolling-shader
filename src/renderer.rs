@@ -3,6 +3,7 @@ use crate::{
     camera::Camera,
     scene::Scene,
     sprite::{DrawSprite, Sprite},
+    texture::Texture,
 };
 use std::path::Path;
 use wgpu::{
@@ -13,6 +14,7 @@ pub(crate) struct Renderer {
     sprites: Vec<Sprite>,
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
+    depth_texture: Texture,
     camera: Camera,
 }
 
@@ -91,16 +93,16 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/pepe.png"),
-                "pepe".to_string(),
+                Path::new(&"assets/leaves.png"),
+                "leaves".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/leaves.png"),
-                "leaves".to_string(),
+                Path::new(&"assets/pepe.png"),
+                "pepe".to_string(),
             ),
         ];
 
@@ -115,6 +117,8 @@ impl Renderer {
             device.create_shader_module(wgpu::include_spirv!("../assets/shader.vert.spv"));
         let fs_module =
             device.create_shader_module(wgpu::include_spirv!("../assets/shader.frag.spv"));
+
+        let depth_texture = Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -150,7 +154,12 @@ impl Renderer {
                 },
                 write_mask: wgpu::ColorWrite::ALL,
             }],
-            depth_stencil_state: None,
+            depth_stencil_state: Some(wgpu::DepthStencilStateDescriptor {
+                format: Texture::DEPTH_FORMAT,
+                depth_write_enabled: true,
+                depth_compare: wgpu::CompareFunction::Less,
+                stencil: wgpu::StencilStateDescriptor::default(),
+            }),
             vertex_state: wgpu::VertexStateDescriptor {
                 index_format: wgpu::IndexFormat::Uint16,
                 vertex_buffers: &[wgpu::VertexBufferDescriptor {
@@ -181,6 +190,7 @@ impl Renderer {
             pipeline,
             camera,
             sprites,
+            depth_texture,
         }
     }
 
@@ -231,7 +241,14 @@ impl Renderer {
                         store: true,
                     },
                 }],
-                depth_stencil_attachment: None,
+                depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
+                    attachment: &self.depth_texture.view,
+                    depth_ops: Some(wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(1.0),
+                        store: true,
+                    }),
+                    stencil_ops: None,
+                }),
             });
 
             rpass.set_pipeline(&self.pipeline);

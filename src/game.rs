@@ -38,7 +38,7 @@ impl Game {
         );
 
         let leaves = (
-            Position(cgmath::Vector3::new(2.0, 2.0, 0.0)),
+            Position(cgmath::Vector3::new(1.0, 1.0, 1.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),

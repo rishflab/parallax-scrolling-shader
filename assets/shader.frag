@@ -6,8 +6,5 @@ layout(set = 0, binding = 2) uniform texture2D t_Color;
 layout(set = 0, binding = 3) uniform sampler s_Color;
 
 void main() {
-    vec4 tex = texture(sampler2D(t_Color, s_Color), v_TexCoord);
-    float mag = length(v_TexCoord-vec2(0.5));
-    o_Target = vec4(mix(tex.xyz, vec3(0.0), mag*mag), tex.w);
-    o_Target = tex.xyzw;
+    o_Target = texture(sampler2D(t_Color, s_Color), v_TexCoord);
 }

@@ -6,4 +6,5 @@ pub mod instance;
 mod renderer;
 pub mod scene;
 pub mod sprite;
+pub mod texture;
 pub mod time;
