@@ -37,6 +37,16 @@ impl Game {
             Sprite("pepe".to_string()),
         );
 
+        let pepe2 = (
+            Position(cgmath::Vector3::new(0.0, 0.0, 0.0)),
+            Rotation(Quaternion::from_axis_angle(
+                Vector3::new(0.0, 0.0, 0.0),
+                Deg(0.0),
+            )),
+            Scale(1.0),
+            Sprite("pepe".to_string()),
+        );
+
         let leaves = (
             Position(cgmath::Vector3::new(0.5, 0.5, 1.0)),
             Rotation(Quaternion::from_axis_angle(
@@ -48,6 +58,7 @@ impl Game {
         );
 
         world.spawn(pepe);
+        world.spawn(pepe2);
         world.spawn(leaves);
 
         Game {
