@@ -118,7 +118,7 @@ impl Renderer {
         let fs_module =
             device.create_shader_module(wgpu::include_spirv!("../assets/shader.frag.spv"));
 
-        let depth_texture = Texture::create_depth_texture(&device, &sc_desc, "depth_texture");
+        let depth_texture = Texture::create_depth_texture(&device, &sc_desc);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -244,7 +244,7 @@ impl Renderer {
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachmentDescriptor {
                     attachment: &self.depth_texture.view,
                     depth_ops: Some(wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(0.5),
+                        load: wgpu::LoadOp::Clear(1.0),
                         store: true,
                     }),
                     stencil_ops: None,

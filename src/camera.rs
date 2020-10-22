@@ -1,5 +1,3 @@
-use glam;
-
 pub struct Camera {
     pub eye: glam::Vec3,
     pub look_at: glam::Vec3,

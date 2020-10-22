@@ -26,3 +26,9 @@ impl Timer {
         Duration::from_secs(1).as_secs_f64() / self.elapsed.as_secs_f64()
     }
 }
+
+impl Default for Timer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
