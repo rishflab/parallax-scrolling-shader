@@ -42,3 +42,10 @@ features = ["swizzle"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"
+
+[build-dependencies]
+anyhow = "1.0"
+fs_extra = "1.2"
+glob = "0.3"
+rayon = "1.4"
+shaderc = "0.6"

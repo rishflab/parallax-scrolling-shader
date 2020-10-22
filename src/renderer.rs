@@ -114,9 +114,9 @@ impl Renderer {
 
         // Create the render pipeline
         let vs_module =
-            device.create_shader_module(wgpu::include_spirv!("../assets/shader.vert.spv"));
+            device.create_shader_module(wgpu::include_spirv!("../shaders/shader.vert.spv"));
         let fs_module =
-            device.create_shader_module(wgpu::include_spirv!("../assets/shader.frag.spv"));
+            device.create_shader_module(wgpu::include_spirv!("../shaders/shader.frag.spv"));
 
         let depth_texture = Texture::create_depth_texture(&device, &sc_desc);
 
