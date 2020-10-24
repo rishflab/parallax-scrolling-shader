@@ -1,6 +1,6 @@
 use crate::{
-    asset::Vertex,
     camera::Camera,
+    gpu_primitives::Vertex,
     scene::Scene,
     sprite::{DrawSprite, Sprite},
     texture::Texture,
@@ -15,7 +15,6 @@ pub(crate) struct Renderer {
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     depth_texture: Texture,
-    camera: Camera,
 }
 
 impl Renderer {
@@ -26,19 +25,9 @@ impl Renderer {
     ) -> Self {
         use std::mem;
 
-        let camera = Camera::new(
-            glam::Vec3::new(0.0, 10.0, 0.0),
-            glam::Vec3::new(0.0, 0.0, 0.0),
-            6.0,
-            sc_desc.width as f32 / sc_desc.height as f32,
-        );
-
-        let mx_total = camera.generate_matrix();
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
+            contents: bytemuck::cast_slice(Camera::default().generate_matrix().as_ref()),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -188,7 +177,6 @@ impl Renderer {
         Renderer {
             uniform_buffer,
             pipeline,
-            camera,
             sprites,
             depth_texture,
         }
@@ -196,14 +184,10 @@ impl Renderer {
 
     pub(crate) fn resize(
         &mut self,
-        sc_desc: &wgpu::SwapChainDescriptor,
+        _sc_desc: &wgpu::SwapChainDescriptor,
         _device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _queue: &wgpu::Queue,
     ) {
-        self.camera.aspect_ratio = sc_desc.width as f32 / sc_desc.height as f32;
-        let mx_total = self.camera.generate_matrix();
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
     }
 
     pub(crate) fn render(
@@ -214,8 +198,9 @@ impl Renderer {
         _sc_desc: &wgpu::SwapChainDescriptor,
         scene: Scene,
     ) {
-        let mx_total = self.camera.generate_matrix();
+        let mx_total = scene.camera.generate_matrix();
         let mx_ref: &[f32; 16] = mx_total.as_ref();
+
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
 
         for sprite in self.sprites.iter_mut() {

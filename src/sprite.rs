@@ -1,6 +1,5 @@
 use crate::{
-    asset::{Index, Vertex},
-    instance::InstanceRaw,
+    gpu_primitives::{Index, InstanceRaw, Vertex},
     texture::Texture,
 };
 use image::GenericImageView;

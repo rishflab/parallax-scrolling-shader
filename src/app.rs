@@ -137,7 +137,7 @@ impl App {
                         }
                     };
 
-                    let scene = game.run();
+                    let scene = game.run(&sc_desc);
 
                     renderer.render(&frame.output, &self.device, &self.queue, &sc_desc, scene);
                 }

@@ -1,10 +1,10 @@
 use crate::{
-    instance::{Instance, InstanceRaw},
+    camera::Camera,
+    gpu_primitives::{Instance, InstanceRaw},
     scene::Scene,
     time::Timer,
 };
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
-
 use hecs::*;
 use std::collections::HashMap;
 use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
@@ -20,6 +20,7 @@ pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 pub struct Game {
     world: World,
     timer: Timer,
+    camera: Camera,
 }
 
 impl Game {
@@ -61,9 +62,17 @@ impl Game {
         world.spawn(pepe2);
         world.spawn(leaves);
 
+        let camera = Camera::new(
+            glam::Vec3::new(0.0, 10.0, 0.0),
+            glam::Vec3::new(0.0, 0.0, 0.0),
+            6.0,
+            16.0 / 9.0,
+        );
+
         Game {
             world,
             timer: Timer::new(),
+            camera,
         }
     }
 
@@ -97,7 +106,7 @@ impl Game {
         }
     }
 
-    fn build_scene(&self) -> Scene {
+    fn build_scene(&mut self, sc_desc: &wgpu::SwapChainDescriptor) -> Scene {
         let mut sprites: HashMap<String, Vec<InstanceRaw>> = HashMap::default();
 
         for (_, (pos, rot, scale, sprite_id)) in
@@ -119,8 +128,11 @@ impl Game {
             }
         }
 
+        self.camera.aspect_ratio = sc_desc.width as f32 / sc_desc.height as f32;
+
         Scene {
             sprite_instances: sprites,
+            camera: self.camera,
         }
     }
 
@@ -136,11 +148,11 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self) -> Scene {
+    pub fn run(&mut self, sc_desc: &wgpu::SwapChainDescriptor) -> Scene {
         self.timer.tick();
         println!("fps: {}", self.timer.fps());
         self.rotate_objects();
         self.move_player();
-        self.build_scene()
+        self.build_scene(sc_desc)
     }
 }

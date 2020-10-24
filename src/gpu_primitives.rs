@@ -1,3 +1,17 @@
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct Vertex {
+    pub(crate) _pos: [f32; 4],
+    pub(crate) _tex_coord: [f32; 2],
+}
+
+pub type Index = u16;
+
+unsafe impl Pod for Vertex {}
+unsafe impl Zeroable for Vertex {}
+
 pub(crate) struct Instance {
     pub(crate) position: cgmath::Vector3<f32>,
     pub(crate) rotation: cgmath::Quaternion<f32>,

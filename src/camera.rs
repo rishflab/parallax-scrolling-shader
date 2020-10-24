@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub struct Camera {
     pub eye: glam::Vec3,
     pub look_at: glam::Vec3,
@@ -36,5 +37,16 @@ impl Camera {
     pub fn update(&mut self, eye: glam::Vec3, look_at: glam::Vec3) {
         self.eye = eye;
         self.look_at = look_at;
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new(
+            glam::Vec3::new(0.0, 10.0, 0.0),
+            glam::Vec3::new(0.0, 0.0, 0.0),
+            6.0,
+            16.0 / 9.0,
+        )
     }
 }

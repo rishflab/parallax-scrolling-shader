@@ -1,8 +1,7 @@
 pub mod app;
-pub mod asset;
 pub mod camera;
 pub mod game;
-pub mod instance;
+pub mod gpu_primitives;
 mod renderer;
 pub mod scene;
 pub mod sprite;
