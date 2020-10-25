@@ -25,11 +25,12 @@ hecs = "0.2"
 legion = "0.3"
 bevy_ecs = "0.2"
 image = "0.23"
+num-traits = "0.2"
 
 #Note: we may consider switching this to "dev-dependencies" if users
 # want to opt into X11 explicitly.
 [target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies]
-gfx-backend-vulkan = { version = "0.6", features = ["x11"] }
+gfx-backend-vulkan = { version = "0.6" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.subscriber]
 package = "wgpu-subscriber"

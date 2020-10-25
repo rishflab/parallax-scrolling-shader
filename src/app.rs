@@ -21,7 +21,7 @@ impl App {
         let mut builder = winit::window::WindowBuilder::new();
         builder = builder
             .with_title(title)
-            .with_inner_size(LogicalSize::new(1600.0, 900.0))
+            .with_inner_size(LogicalSize::new(1500.0, 1000.0))
             .with_resizable(true);
 
         let window = builder.build(&event_loop).unwrap();
