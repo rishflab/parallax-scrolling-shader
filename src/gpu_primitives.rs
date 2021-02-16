@@ -13,6 +13,12 @@ pub type Index = u16;
 unsafe impl Pod for Vertex {}
 unsafe impl Zeroable for Vertex {}
 
+pub struct Uniform {
+    pub near: glam::Mat4,
+    pub far: glam::Mat4,
+    pub persp: glam::Mat4,
+}
+
 pub(crate) struct Instance {
     pub position: cgmath::Vector3<f32>,
     pub rotation: cgmath::Quaternion<f32>,

@@ -2,7 +2,7 @@ use crate::{
     gpu_primitives::{Index, InstanceRaw, Vertex},
     texture::Texture,
 };
-use image::{GenericImageView, ImageBuffer};
+use image::GenericImageView;
 use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
@@ -16,7 +16,6 @@ pub struct Sprite {
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     num_indices: u32,
-    _texture: Texture,
 }
 
 impl Sprite {
@@ -65,7 +64,7 @@ impl Sprite {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer(instance_buffer.slice(..)),
+                    resource: instance_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -86,7 +85,6 @@ impl Sprite {
             bind_group,
             num_indices: index_data.len() as u32,
             id,
-            _texture: texture,
         }
     }
 
@@ -122,7 +120,7 @@ where
         bind_group: &'b wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, model.vertex_buffer.slice(..));
-        self.set_index_buffer(model.index_buffer.slice(..));
+        self.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         self.set_bind_group(0, bind_group, &[]);
         self.draw_indexed(0..model.num_indices, 0, instances);
     }
@@ -160,15 +158,15 @@ fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex
     (vertex_data.to_vec(), index_data.to_vec())
 }
 
-fn vertex(pos: [i8; 4], tc: [i8; 2], centre: [i8; 4]) -> Vertex {
-    Vertex {
-        _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, pos[3] as f32],
-        _tex_coord: [tc[0] as f32, tc[1] as f32],
-        _centre: [
-            centre[0] as f32,
-            centre[1] as f32,
-            centre[2] as f32,
-            centre[3] as f32,
-        ],
-    }
-}
+// fn vertex(pos: [i8; 4], tc: [i8; 2], centre: [i8; 4]) -> Vertex {
+//     Vertex {
+//         _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, pos[3] as f32],
+//         _tex_coord: [tc[0] as f32, tc[1] as f32],
+//         _centre: [
+//             centre[0] as f32,
+//             centre[1] as f32,
+//             centre[2] as f32,
+//             centre[3] as f32,
+//         ],
+//     }
+// }

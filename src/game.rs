@@ -5,7 +5,7 @@ use crate::{
     time::Timer,
 };
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
-use glam::{f32::Vec3A, Mat4, Vec3};
+use glam::Vec3;
 use hecs::*;
 use std::collections::HashMap;
 use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
@@ -69,7 +69,7 @@ impl Game {
             Sprite("pepe".to_string()),
         );
 
-        let leaves = (
+        let _leaves = (
             Position(cgmath::Vector3::new(3.5, 0.5, 0.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
@@ -88,8 +88,8 @@ impl Game {
         let camera = Camera::new(
             glam::Vec3::new(0.0, 0.0, 10.0),
             glam::Vec3::new(0.0, 0.0, 0.0),
-            6.0,
-            16.0 / 9.0,
+            20.0,
+            1.5,
         );
 
         Game {
@@ -109,6 +109,7 @@ impl Game {
 
     fn move_player(&mut self) {
         let mut q = self.world.query::<(&KeyboardInput, &mut Position)>();
+        let move_speed = 0.1;
         for (_, (key, pos)) in q.iter() {
             // ignore non keyboard input
             if let Some(input) = key.0 {
@@ -118,16 +119,16 @@ impl Game {
                         virtual_keycode: Some(VirtualKeyCode::Left),
                         ..
                     } => {
-                        pos.0 += Vector3::new(0.005, 0.0, 0.0);
-                        self.camera.eye += Vec3::new(0.005, 0.0, 0.0);
+                        pos.0 += Vector3::new(move_speed, 0.0, 0.0);
+                        self.camera.eye += Vec3::new(move_speed, 0.0, 0.0);
                     }
                     winit::event::KeyboardInput {
                         state: ElementState::Pressed,
                         virtual_keycode: Some(VirtualKeyCode::Right),
                         ..
                     } => {
-                        pos.0 -= Vector3::new(0.005, 0.0, 0.0);
-                        self.camera.eye -= Vec3::new(0.005, 0.0, 0.0);
+                        pos.0 -= Vector3::new(move_speed, 0.0, 0.0);
+                        self.camera.eye -= Vec3::new(move_speed, 0.0, 0.0);
                     }
                     _ => (),
                 }

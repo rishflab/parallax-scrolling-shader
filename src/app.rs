@@ -37,7 +37,7 @@ impl App {
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::Default,
+                power_preference: wgpu::PowerPreference::HighPerformance,
                 compatible_surface: Some(&surface),
             })
             .await
@@ -58,9 +58,9 @@ impl App {
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
+                    label: wgpu::Label::None,
                     features: (optional_features & adapter_features) | required_features,
                     limits: needed_limits,
-                    shader_validation: true,
                 },
                 trace_dir.ok().as_ref().map(std::path::Path::new),
             )
@@ -80,7 +80,7 @@ impl App {
 
     pub fn run(mut self, event_loop: EventLoop<()>) {
         let mut sc_desc = wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             width: self.size.width,
             height: self.size.height,
             present_mode: wgpu::PresentMode::Mailbox,

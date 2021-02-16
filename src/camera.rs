@@ -1,6 +1,4 @@
-use cgmath::{Deg, Rad};
 use glam::{Mat4, Vec3, Vec4};
-use num_traits::real::Real;
 use std::f32;
 
 #[derive(Clone, Copy)]
@@ -29,18 +27,18 @@ impl Camera {
         let z_far = 100.0;
         let aspect_ratio = 1.5;
         let fovy = 1.0;
-        let fovx = aspect_ratio * fovy;
+        let _fovx = aspect_ratio * fovy;
 
-        let mx_perspective = glam::Mat4::perspective_lh(fovy, self.aspect_ratio, z_near, z_far);
+        let _mx_perspective = glam::Mat4::perspective_lh(fovy, self.aspect_ratio, z_near, z_far);
 
         let (sin_fovy, cos_fovy) = (0.5 * fovy).sin_cos();
-        let (sin_fovx, cos_fovx) = (0.5 * fovx).sin_cos();
+        // let (sin_fovx, cos_fovx) = (0.5 * fovx).sin_cos();
         let h = z_near * sin_fovy / cos_fovy;
         let w = h * aspect_ratio;
 
         let mx_ortho = glam::Mat4::orthographic_lh(-w, w, -h, h, z_far, z_near);
 
-        let mx_view = look_to_lh(self.eye, Vec3::new(0.0, 0.0, -1.0), -Vec3::unit_y());
+        let mx_view = look_to_lh(self.eye, Vec3::new(0.0, 0.0, -1.0), Vec3::unit_y());
 
         // mx_perspective * mx_view
         mx_ortho * mx_view
