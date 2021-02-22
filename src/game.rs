@@ -1,5 +1,5 @@
 use crate::{
-    camera::Camera,
+    camera::ParallaxCamera,
     gpu_primitives::{Instance, InstanceRaw},
     scene::Scene,
     time::Timer,
@@ -21,7 +21,7 @@ pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 pub struct Game {
     world: World,
     timer: Timer,
-    camera: Camera,
+    camera: ParallaxCamera,
 }
 
 impl Game {
@@ -40,7 +40,7 @@ impl Game {
         );
 
         let pepe2 = (
-            Position(cgmath::Vector3::new(-0.5, 0.0, -20.0)),
+            Position(cgmath::Vector3::new(-0.5, -4.0, -20.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -50,7 +50,7 @@ impl Game {
         );
 
         let pepe3 = (
-            Position(cgmath::Vector3::new(5.5, 0.0, -10.0)),
+            Position(cgmath::Vector3::new(5.5, 3.0, -10.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -60,7 +60,7 @@ impl Game {
         );
 
         let pepe4 = (
-            Position(cgmath::Vector3::new(-5.5, 0.0, -15.0)),
+            Position(cgmath::Vector3::new(-5.5, 4.0, -15.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -85,9 +85,9 @@ impl Game {
         world.spawn(pepe4);
         // world.spawn(leaves);
 
-        let camera = Camera::new(
-            glam::Vec3::new(0.0, 0.0, 10.0),
+        let camera = ParallaxCamera::new(
             glam::Vec3::new(0.0, 0.0, 0.0),
+            glam::Vec3::new(0.0, 0.0, -1.0),
             20.0,
             1.5,
         );

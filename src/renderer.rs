@@ -1,6 +1,6 @@
 use crate::{
-    camera::Camera,
-    gpu_primitives::Vertex,
+    camera::ParallaxCamera,
+    gpu_primitives::{CameraUniform, Vertex},
     scene::Scene,
     sprite::{DrawSprite, Sprite},
     texture::Texture,
@@ -21,9 +21,10 @@ impl Renderer {
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self {
+        let camera_matrix = ParallaxCamera::default().camera_uniform();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(Camera::default().generate_matrix().as_ref()),
+            contents: bytemuck::bytes_of(&camera_matrix),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -37,7 +38,9 @@ impl Renderer {
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
-                        min_binding_size: None,
+                        min_binding_size: wgpu::BufferSize::new(
+                            mem::size_of::<CameraUniform>() as _
+                        ),
                         has_dynamic_offset: false,
                     },
                     count: None,
@@ -89,7 +92,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/pepe.png"),
+                Path::new(&"assets/square.png"),
                 "pepe".to_string(),
             ),
         ];
@@ -158,8 +161,8 @@ impl Renderer {
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: FrontFace::Ccw,
-                cull_mode: CullMode::None,
+                front_face: FrontFace::Cw,
+                cull_mode: CullMode::Back,
                 polygon_mode: Default::default(),
             },
             depth_stencil: Some(wgpu::DepthStencilState {
@@ -202,10 +205,9 @@ impl Renderer {
         _sc_desc: &wgpu::SwapChainDescriptor,
         scene: Scene,
     ) {
-        let mx_total = scene.camera.generate_matrix();
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        let mx_total = scene.camera.camera_uniform();
 
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(mx_ref));
+        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&mx_total));
 
         for sprite in self.sprites.iter_mut() {
             if let Some(instances) = scene.sprite_instances.get(&sprite.id) {
