@@ -19,13 +19,14 @@ buffer Instances {
 void main() {
     v_tex_coords = a_tex_coords;
 
+    vec4 persp_centre = persp * s_models[gl_InstanceIndex] * centre;
+
     vec4 ortho_centre = ortho * s_models[gl_InstanceIndex] * centre;
     vec4 ortho_pos = ortho * s_models[gl_InstanceIndex] * a_position;
 
-    vec4 persp_centre = persp * s_models[gl_InstanceIndex] * centre;
+    gl_Position =  persp_centre +  (ortho_pos - ortho_centre);
 
-    gl_Position =  persp_centre + 50.0 * (ortho_pos - ortho_centre);
-
-    //vec4 persp_pos = persp * s_models[gl_InstanceIndex] * a_position;
-    //gl_Position =  persp_pos;
+    /// How to calculate gl_Position with a standard perspective camera
+    /// vec4 persp_pos = persp * s_models[gl_InstanceIndex] * a_position;
+    /// gl_Position =  persp_pos;
 }

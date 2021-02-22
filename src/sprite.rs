@@ -157,3 +157,11 @@ fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex
 
     (vertex_data.to_vec(), index_data.to_vec())
 }
+
+fn vertex(pos: [i64; 3], tc: [i64; 2]) -> Vertex {
+    Vertex {
+        _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, 1.0],
+        _tex_coord: [tc[0] as f32, tc[1] as f32],
+        _centre: [0.0, 0.0, 0.0, 1.0],
+    }
+}

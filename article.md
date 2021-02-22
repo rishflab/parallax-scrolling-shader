@@ -28,68 +28,101 @@ Perspective cameras intrinsically render objects with depth effects. Far away ob
 slower than close objects. The problem with using a 3D camera to render 2D sprites is that sprites appear skewed
 due to perspective distortion. 
 
-## Layer-less Parallax Scrolling 
+## Implementation using a Vertex Shader 
 
 This approach uses both perspective and orthographic cameras to create the parallax scrolling effect without the use
-of layers. We take advantage of the intrinsic 3D nature of the  perspective camera is used to compute the location of
-the sprite in the final scene however we render the sprite using an orthographic camera to prevent perspective
+of layers. We take advantage of the intrinsic 3D nature of the  perspective camera to compute the location and 
+size of the sprite in the final scene however we render the sprite using an orthographic camera to prevent perspective
 distortion. 
 
-First we determine the location of the sprite centre if it were rendered using an orthographic camera.
-
-1. Calculate the `spriteCenter` in world coordinates the `modelToWorldMatrix`.
-```
-vec4 spriteCenter = modelToWorldMatrix * vec4(0.0);
-```
-2. Calculate the position of the sprite center on the orthographic camera projection plane. 
-
-```
-vec4 spriteCenterOrthographic = orthographicProjectionMatrix * vec4(0.0);
-```
-
-3. Find the perpendicular projection of `spriteCenterOrthographic` on the orthographic projection plane.
-```
-vec4 orthographicPlane = todo!(orthographicProjectionMatrix)
-vec4 spriteCenterOrthographicPlane = perpProject(orthographicPlane, spriteCenterOrthographic);
-```
-   
-Next we repeat these same steps to calculate sprite centre on the perspective projection plane if it were rendering
-using a perspective camera. 
-
-```
-vec4 spriteCenter = modelToWorldMatrix * vec4(0.0)
-vec4 spriteCenterPerspective = perspectiveProjectionMatrix * vec4(0.0)
-vec4 perspectivePlane = todo!(perspectiveProjectionMatrix)
-vec4 spriteCenterPerspectivePlane = perpProject(perspectivePlane, spriteCenterPerspective);
-```
-
-4. Calculate the translation vector between the orthographic projection and perspective perspective projection
-
-```
-vec4 translation = spriteCenterPerspectivePlane - spriteCenterOrthographicPlane;
-```
-
-4. Translate the Orthgraphic camera by orthographic-to-perspective translation vector
-
-```
-vec4 layerFreeParallaxScrollingProjectionMatrix = orthographicProjectionMatrix + translation;
-```
-
-5. The sprite rendered with the `translatedOrthographicCamera` 
-
-#### Orthographic and Perspective Camera "Equivalency"
+#### Calculating a Compatible Orthographic Projection Matrix
 
 In this technique both perspective and orthographic cameras are used. In order for this technique to work the
-the orthographic and perspective cameras must equivalent in the sense that the maximum height and width of the
-perspective camera frustrum is equivalent to the objective camera frustrum.
+the orthographic and perspective cameras must be compatible. The maximum height and width of the
+perspective camera frustrum is should be equal to objective camera frustrum.
+
+```
+pub fn camera_matrices(fov_y: f32, aspect_ratio, far: f32, near: f32) -> (Mat4, Mat4) {
+    let h = (0.5 * fov_y).tan() * far;
+    let w = h * aspect_ratio;
+
+    let orthographic = Mat4::orthographic_lh(-w, w, -h, h, self.far, self.near);
+    let perspective = Mat4::perspective_lh(self.fov_y, self.aspect_ratio, self.near, self.far);
+
+    (orthographic, perspective)
+}
+```
 
 
-#### Optional: Shrinking distant objects 
+#### Calculating a Compatible Orthographic Projection Matrix
 
-In the previous section we achieved the parallax scrolling effect by calculating the location of a the sprite if
-it were to be rendered by a perspective camera and shifting it to that position to achieve a the paralax scrolling effect.
+We calculate the location of the sprite centre in the perspective clip space. The operations to do this are
+the same as if you were calculating the position of a vertex in perspective clip space in the standard rendering process.
+The only difference is we are applying the model and camera transforms to the centre of the quad the vertex
+belongs to rather the vertex itself. The `perspectiveCentre` gives us the location of the sprite in final image.
 
-We avoided perspective distortion by rendering the sprite using an orthographic camera. 
-Certain aspect of perspective may be desirable for example the shrinking of distant. 
+```
+vec4 perspectiveCentre = perspectiveCameraMatrix * modelMatrix * centre;
+```
+ 
+Now we use our orthographic projection matrix to calculate how far the vertex is offset from its centre if
+it were rendering using an orthographic camera. We need to multiply the offset by the far bounds of the
+camera frustrum to 
 
-5. Calculate the distance D of the sprite center in perspective camera space to the camera eye.
+```
+    vec4 orthographicCentre = ortho * perspectiveOrthographicMatrix * centre;
+    vec4 orthographicVertex = ortho * perspectiveOrthographicMatrix * vertex;
+    vec4 vertexOffset = frustrumFar * (orthographicVertex - orthopraphicCentre)
+```
+
+#### Parallax Effect
+
+We apply this offset to the `vertexOffset` to the `perspectiveCentre`. By applying our `perspectiveCameraMatrix` to 
+a single point, the `spriteCentre`, we avoid perspective distortion while achieving the parallax effect.
+The orthographic projections of the vertices are reconstructed around the `perspectiveCentre` with pixel perfect
+precision.
+
+```
+gl_Position =  perspectiveCentre + vertexOffset;
+```
+
+#### Shrinking far away objects
+
+Another benefit of this technique is that sprites are automatically shrunk based on their distance without any further
+input required from the artist or game designer. `perspectiveCentre.Z` remains intact as
+`vertexOffet.z` is always equal to 0 as long as the sprite quads are parallel to the camera plane, a condition which
+can be assumed for 2D rendering.
+
+
+#### Final Shader Code
+
+```
+#version 450
+
+layout(location=0) in vec4 a_position;
+layout(location=1) in vec2 a_tex_coords;
+layout(location=2) in vec4 centre;
+
+layout(location=0) out vec2 v_tex_coords;
+
+layout(set = 0, binding = 0) uniform Uniforms {
+    mat4 ortho;
+    mat4 persp;
+    float frustrum_far;
+};
+
+layout(set=0, binding=1)
+buffer Instances {
+    mat4 s_models[];
+};
+
+void main() {
+    v_tex_coords = a_tex_coords;
+
+    vec4 persp_centre = persp * s_models[gl_InstanceIndex] * centre;
+
+    vec4 ortho_centre = ortho * s_models[gl_InstanceIndex] * centre;
+    vec4 ortho_pos = ortho * s_models[gl_InstanceIndex] * a_position;
+
+    gl_Position =  persp_centre +  frustrum_far * (ortho_pos - ortho_centre);
+```

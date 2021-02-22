@@ -40,7 +40,7 @@ impl Game {
         );
 
         let pepe2 = (
-            Position(cgmath::Vector3::new(-0.5, -4.0, -20.0)),
+            Position(cgmath::Vector3::new(-0.5, -24.0, -20.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -50,7 +50,7 @@ impl Game {
         );
 
         let pepe3 = (
-            Position(cgmath::Vector3::new(5.5, 3.0, -10.0)),
+            Position(cgmath::Vector3::new(7.5, 7.0, -10.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -60,7 +60,7 @@ impl Game {
         );
 
         let pepe4 = (
-            Position(cgmath::Vector3::new(-5.5, 4.0, -15.0)),
+            Position(cgmath::Vector3::new(-5.5, 14.0, -15.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 0.0, 0.0),
                 Deg(0.0),
@@ -69,27 +69,18 @@ impl Game {
             Sprite("pepe".to_string()),
         );
 
-        let _leaves = (
-            Position(cgmath::Vector3::new(3.5, 0.5, 0.0)),
-            Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
-                Deg(0.0),
-            )),
-            Scale(0.5),
-            Sprite("leaves".to_string()),
-        );
-
         world.spawn(pepe);
         world.spawn(pepe2);
         world.spawn(pepe3);
         world.spawn(pepe4);
-        // world.spawn(leaves);
 
         let camera = ParallaxCamera::new(
             glam::Vec3::new(0.0, 0.0, 0.0),
             glam::Vec3::new(0.0, 0.0, -1.0),
-            20.0,
+            2.0,
             1.5,
+            1.0,
+            50.0,
         );
 
         Game {
@@ -180,7 +171,7 @@ impl Game {
 
     pub fn run(&mut self, sc_desc: &wgpu::SwapChainDescriptor) -> Scene {
         self.timer.tick();
-        println!("fps: {}", self.timer.fps());
+        // println!("fps: {}", self.timer.fps());
         self.rotate_objects();
         self.move_player();
         self.build_scene(sc_desc)

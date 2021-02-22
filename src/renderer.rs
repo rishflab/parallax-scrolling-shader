@@ -6,7 +6,7 @@ use crate::{
     texture::Texture,
 };
 use std::{mem, path::Path};
-use wgpu::{util::DeviceExt, BlendFactor, BlendOperation, CullMode, FrontFace, VertexBufferLayout};
+use wgpu::{util::DeviceExt, BlendFactor, BlendOperation, VertexBufferLayout};
 
 pub(crate) struct Renderer {
     sprites: Vec<Sprite>,
@@ -78,24 +78,14 @@ impl Renderer {
         });
 
         // Load sprites onto GPU
-        let sprites = vec![
-            Sprite::new(
-                device,
-                queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
-                Path::new(&"assets/leaves.png"),
-                "leaves".to_string(),
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
-                Path::new(&"assets/square.png"),
-                "pepe".to_string(),
-            ),
-        ];
+        let sprites = vec![Sprite::new(
+            device,
+            queue,
+            &bind_group_layout,
+            &uniform_buffer_binding_resource,
+            Path::new(&"assets/square.png"),
+            "pepe".to_string(),
+        )];
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -159,11 +149,8 @@ impl Renderer {
                 }],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: FrontFace::Cw,
-                cull_mode: CullMode::Back,
-                polygon_mode: Default::default(),
+                cull_mode: wgpu::CullMode::None,
+                ..Default::default()
             },
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: Texture::DEPTH_FORMAT,
@@ -173,11 +160,7 @@ impl Renderer {
                 bias: Default::default(),
                 clamp_depth: false,
             }),
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
+            multisample: wgpu::MultisampleState::default(),
         });
 
         // Done

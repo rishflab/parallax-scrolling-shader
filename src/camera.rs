@@ -35,16 +35,11 @@ impl ParallaxCamera {
         }
     }
     pub fn generate_ortho(&self) -> glam::Mat4 {
-        let z_near = 1.0;
-        let z_far = 50.0;
-        let aspect_ratio = 1.5;
-        let fovy = 1.0;
+        let tan_fovy = (0.5 * self.fov_y).tan();
+        let h = tan_fovy;
+        let w = h * self.aspect_ratio;
 
-        let tan_fovy = (0.5 * fovy).tan();
-        let h = z_far * tan_fovy;
-        let w = h * aspect_ratio;
-
-        let mx_ortho = glam::Mat4::orthographic_lh(-w, w, -h, h, z_far, z_near);
+        let mx_ortho = glam::Mat4::orthographic_lh(-w, w, -h, h, self.far, self.near);
 
         let mx_view = look_to_lh(self.eye, Vec3::new(0.0, 0.0, -1.0), Vec3::unit_y());
 
@@ -52,12 +47,8 @@ impl ParallaxCamera {
     }
 
     pub fn generate_perspective(&self) -> glam::Mat4 {
-        let z_near = 1.0;
-        let z_far = 50.0;
-        let aspect_ratio = 1.5;
-        let fovy = 1.0;
-
-        let mx_perspective = glam::Mat4::perspective_lh(fovy, aspect_ratio, z_near, z_far);
+        let mx_perspective =
+            glam::Mat4::perspective_lh(self.fov_y, self.aspect_ratio, self.near, self.far);
 
         let mx_view = look_to_lh(self.eye, Vec3::new(0.0, 0.0, -1.0), Vec3::unit_y());
 
