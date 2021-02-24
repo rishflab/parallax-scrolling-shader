@@ -7,7 +7,7 @@ use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
 pub const MAX_INSTANCES: u64 = 1024;
-pub const PIXELS_PER_METRE: u32 = 64;
+pub const PIXELS_PER_METRE: u32 = 32;
 
 pub struct Sprite {
     pub id: String,

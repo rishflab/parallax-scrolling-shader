@@ -12,9 +12,7 @@ use winit::event::{ElementState, VirtualKeyCode, WindowEvent};
 
 pub struct Position(Vector3<f32>);
 pub struct Rotation(Quaternion<f32>);
-pub struct AngularVelocity(Quaternion<f32>);
-pub struct Scale(f32);
-pub struct StaticMesh(usize);
+pub struct Scale(u8);
 pub struct Sprite(String);
 pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 
@@ -28,72 +26,75 @@ impl Game {
     pub(crate) fn new() -> Game {
         let mut world = World::new();
 
-        let apple = (
-            Position(cgmath::Vector3::new(0.0, 0.0, 2.0)),
+        let player = (
+            Position(cgmath::Vector3::new(0.0, 0.0, 20.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
-            Scale(1.0),
+            Scale(1),
             KeyboardInput(None),
+            Sprite("player".to_string()),
+        );
+
+        let apple = (
+            Position(cgmath::Vector3::new(-2.0, 0.0, 30.0)),
+            Rotation(Quaternion::from_axis_angle(
+                Vector3::new(0.0, 1.0, 0.0),
+                Deg(0.0),
+            )),
+            Scale(1),
             Sprite("apple".to_string()),
         );
 
         let ashberry = (
-            Position(cgmath::Vector3::new(8.0, -3.0, 12.0)),
+            Position(cgmath::Vector3::new(2.0, 0.0, 30.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
-            Scale(1.0),
+            Scale(1),
             Sprite("ashberry".to_string()),
         );
 
         let baobab = (
-            Position(cgmath::Vector3::new(-7.0, 6.0, 7.0)),
+            Position(cgmath::Vector3::new(3.0, 0.0, 55.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
-            Scale(1.0),
+            Scale(1),
             Sprite("baobab".to_string()),
         );
 
         let beech = (
-            Position(cgmath::Vector3::new(-5.5, -4.0, 15.0)),
+            Position(cgmath::Vector3::new(-3.5, 0.0, 95.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
-            Scale(1.0),
+            Scale(1),
             Sprite("beech".to_string()),
         );
 
+        world.spawn(player);
         world.spawn(apple);
         world.spawn(ashberry);
         world.spawn(baobab);
         world.spawn(beech);
 
         let camera = ParallaxCamera::new(
-            glam::Vec3::new(0.0, 0.0, -5.0),
+            glam::Vec3::new(0.0, 3.0, 0.0),
             glam::Vec3::new(0.0, 0.0, 1.0),
             1.0,
-            0.1,
-            50.0,
+            1.0,
+            500.0,
         );
 
         Game {
             world,
             timer: Timer::new(),
             camera,
-        }
-    }
-
-    fn rotate_objects(&self) {
-        for (_, (rot, ang_vel)) in &mut self.world.query::<(&mut Rotation, &AngularVelocity)>() {
-            // let time = self.timer.elapsed().as_secs_f32();
-            // let mut angle = Quaternion::from_sv(time * ang_vel.0.s, ang_vel.0.v);
-            rot.0 = ang_vel.0 * rot.0;
         }
     }
 
@@ -137,7 +138,7 @@ impl Game {
             let instance_raw = InstanceRaw::from(Instance {
                 position: pos.0,
                 rotation: rot.0,
-                scale: scale.0,
+                scale: scale.0 as f32,
             });
             if let Some(instances) = sprites.get(&sprite_id.0) {
                 let mut new = instances.clone();
@@ -168,7 +169,6 @@ impl Game {
 
     pub fn run(&mut self) -> Scene {
         self.timer.tick();
-        self.rotate_objects();
         self.move_player();
         self.build_scene()
     }

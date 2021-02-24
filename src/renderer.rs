@@ -57,7 +57,7 @@ impl Renderer {
                     binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
                         view_dimension: wgpu::TextureViewDimension::D2,
                         multisampled: false,
                     },
@@ -77,6 +77,14 @@ impl Renderer {
 
         // Load sprites onto GPU
         let sprites = vec![
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/player.png"),
+                "player".to_string(),
+            ),
             Sprite::new(
                 device,
                 queue,
@@ -187,7 +195,6 @@ impl Renderer {
             multisample: wgpu::MultisampleState::default(),
         });
 
-        // Done
         Renderer {
             uniform_buffer,
             pipeline,
