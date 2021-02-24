@@ -28,7 +28,7 @@ impl Game {
     pub(crate) fn new() -> Game {
         let mut world = World::new();
 
-        let player = (
+        let apple = (
             Position(cgmath::Vector3::new(0.0, 0.0, 2.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
@@ -36,51 +36,49 @@ impl Game {
             )),
             Scale(1.0),
             KeyboardInput(None),
-            Sprite("tree".to_string()),
+            Sprite("apple".to_string()),
         );
 
-        let square1 = (
-            Position(cgmath::Vector3::new(-7.0, 6.0, 7.0)),
-            Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 1.0, 0.0),
-                Deg(0.0),
-            )),
-            Scale(1.0),
-            Sprite("red".to_string()),
-        );
-
-        let square2 = (
+        let ashberry = (
             Position(cgmath::Vector3::new(8.0, -3.0, 12.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
-            Sprite("blue".to_string()),
+            Sprite("ashberry".to_string()),
         );
 
-        let square3 = (
+        let baobab = (
+            Position(cgmath::Vector3::new(-7.0, 6.0, 7.0)),
+            Rotation(Quaternion::from_axis_angle(
+                Vector3::new(0.0, 1.0, 0.0),
+                Deg(0.0),
+            )),
+            Scale(1.0),
+            Sprite("baobab".to_string()),
+        );
+
+        let beech = (
             Position(cgmath::Vector3::new(-5.5, -4.0, 15.0)),
             Rotation(Quaternion::from_axis_angle(
                 Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
-            Sprite("green".to_string()),
+            Sprite("beech".to_string()),
         );
 
-        world.spawn(player);
-        world.spawn(square1);
-        world.spawn(square2);
-        world.spawn(square3);
-        // world.spawn(leaves);
+        world.spawn(apple);
+        world.spawn(ashberry);
+        world.spawn(baobab);
+        world.spawn(beech);
 
         let camera = ParallaxCamera::new(
             glam::Vec3::new(0.0, 0.0, -5.0),
             glam::Vec3::new(0.0, 0.0, 1.0),
             1.0,
-            1.5,
-            1.0,
+            0.1,
             50.0,
         );
 
@@ -128,7 +126,7 @@ impl Game {
         }
     }
 
-    fn build_scene(&mut self, sc_desc: &wgpu::SwapChainDescriptor) -> Scene {
+    fn build_scene(&mut self) -> Scene {
         let mut sprites: HashMap<String, Vec<InstanceRaw>> = HashMap::default();
 
         for (_, (pos, rot, scale, sprite_id)) in
@@ -150,8 +148,6 @@ impl Game {
             }
         }
 
-        self.camera.aspect_ratio = sc_desc.width as f32 / sc_desc.height as f32;
-
         Scene {
             sprite_instances: sprites,
             camera: self.camera,
@@ -170,11 +166,10 @@ impl Game {
         }
     }
 
-    pub fn run(&mut self, sc_desc: &wgpu::SwapChainDescriptor) -> Scene {
+    pub fn run(&mut self) -> Scene {
         self.timer.tick();
-        // println!("fps: {}", self.timer.fps());
         self.rotate_objects();
         self.move_player();
-        self.build_scene(sc_desc)
+        self.build_scene()
     }
 }

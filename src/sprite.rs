@@ -7,7 +7,7 @@ use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
 pub const MAX_INSTANCES: u64 = 1024;
-pub const PIXELS_PER_METRE: u32 = 512;
+pub const PIXELS_PER_METRE: u32 = 64;
 
 pub struct Sprite {
     pub id: String,
@@ -156,56 +156,3 @@ fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex
 
     (vertex_data.to_vec(), index_data.to_vec())
 }
-// fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) ->
-// (Vec<Vertex>, Vec<Index>) {     let w = (width as f32 / pixel_per_metre as
-// f32) / 2.0;     let h = (height as f32 / pixel_per_metre as f32) / 2.0;
-//     let centre = [0.0, 0.0, 0.0, 1.0];
-//     let vertex_data = [
-//         // front
-//         Vertex {
-//             _pos: [-1.0, -1.0, 1.0, 1.0],
-//             _tex_coord: [0.0, 1.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [1.0, -1.0, 1.0, 1.0],
-//             _tex_coord: [1.0, 1.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [1.0, 1.0, 1.0, 1.0],
-//             _tex_coord: [1.0, 0.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [-1.0, 1.0, 1.0, 1.0],
-//             _tex_coord: [0.0, 0.0],
-//             _centre: centre,
-//         },
-//         // back
-//         Vertex {
-//             _pos: [-1.0, -1.0, -1.0, 1.0],
-//             _tex_coord: [0.0, 1.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [1.0, -1.0, -1.0, 1.0],
-//             _tex_coord: [1.0, 1.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [1.0, 1.0, -1.0, 1.0],
-//             _tex_coord: [1.0, 0.0],
-//             _centre: centre,
-//         },
-//         Vertex {
-//             _pos: [-1.0, 1.0, -1.0, 1.0],
-//             _tex_coord: [0.0, 0.0],
-//             _centre: centre,
-//         },
-//     ];
-//
-//     let index_data: &[u16] = &[0, 1, 2, 2, 3, 0];
-//
-//     (vertex_data.to_vec(), index_data.to_vec())
-// }

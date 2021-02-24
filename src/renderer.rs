@@ -82,48 +82,32 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/red.png"),
-                "red".to_string(),
+                Path::new(&"assets/apple.png"),
+                "apple".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/blue.png"),
-                "blue".to_string(),
+                Path::new(&"assets/ashberry.png"),
+                "ashberry".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/green.png"),
-                "green".to_string(),
+                Path::new(&"assets/baobab.png"),
+                "baobab".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/pepe.png"),
-                "pepe".to_string(),
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
-                Path::new(&"assets/leaves.png"),
-                "leaves".to_string(),
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
-                Path::new(&"assets/tree.png"),
-                "tree".to_string(),
+                Path::new(&"assets/beech.png"),
+                "beech".to_string(),
             ),
         ];
 
@@ -210,14 +194,6 @@ impl Renderer {
             sprites,
             depth_texture,
         }
-    }
-
-    pub(crate) fn resize(
-        &mut self,
-        _sc_desc: &wgpu::SwapChainDescriptor,
-        _device: &wgpu::Device,
-        _queue: &wgpu::Queue,
-    ) {
     }
 
     pub(crate) fn render(

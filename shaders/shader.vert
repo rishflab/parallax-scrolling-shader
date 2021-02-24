@@ -44,10 +44,11 @@ void main() {
     vec4 d = o_c_ndc - p_c_ndc;
 
     mat4 shift = mat4(
-    vec4(1.0, 0.0, 0.0 ,0.0),
-    vec4(0.0, 1.0, 0.0 ,0.0),
-    vec4(0.0, 0.0, 1.0 ,0.0),
-    vec4(d.xyz, 1.0));
+        vec4(1.0, 0.0, 0.0 ,0.0),
+        vec4(0.0, 1.0, 0.0 ,0.0),
+        vec4(0.0, 0.0, 1.0 ,0.0),
+        vec4(d.xyz, 1.0)
+    );
 
     gl_Position =  shift * ortho * s_models[gl_InstanceIndex] * a_position;
 }
