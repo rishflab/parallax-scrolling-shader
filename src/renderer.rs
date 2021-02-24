@@ -1,5 +1,4 @@
 use crate::{
-    camera::ParallaxCamera,
     gpu_primitives::{CameraUniform, Vertex},
     scene::Scene,
     sprite::{DrawSprite, Sprite},
@@ -21,10 +20,9 @@ impl Renderer {
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self {
-        let camera_matrix = ParallaxCamera::default().camera_uniform();
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::bytes_of(&camera_matrix),
+            contents: &[0u8; mem::size_of::<CameraUniform>()],
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -78,14 +76,56 @@ impl Renderer {
         });
 
         // Load sprites onto GPU
-        let sprites = vec![Sprite::new(
-            device,
-            queue,
-            &bind_group_layout,
-            &uniform_buffer_binding_resource,
-            Path::new(&"assets/square.png"),
-            "pepe".to_string(),
-        )];
+        let sprites = vec![
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/red.png"),
+                "red".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/blue.png"),
+                "blue".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/green.png"),
+                "green".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/pepe.png"),
+                "pepe".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/leaves.png"),
+                "leaves".to_string(),
+            ),
+            Sprite::new(
+                device,
+                queue,
+                &bind_group_layout,
+                &uniform_buffer_binding_resource,
+                Path::new(&"assets/tree.png"),
+                "tree".to_string(),
+            ),
+        ];
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
@@ -149,7 +189,7 @@ impl Renderer {
                 }],
             }),
             primitive: wgpu::PrimitiveState {
-                cull_mode: wgpu::CullMode::None,
+                cull_mode: wgpu::CullMode::Back,
                 ..Default::default()
             },
             depth_stencil: Some(wgpu::DepthStencilState {

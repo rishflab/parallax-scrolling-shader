@@ -21,63 +21,64 @@ pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 pub struct Game {
     world: World,
     timer: Timer,
-    camera: ParallaxCamera,
+    pub camera: ParallaxCamera,
 }
 
 impl Game {
     pub(crate) fn new() -> Game {
         let mut world = World::new();
 
-        let pepe = (
-            Position(cgmath::Vector3::new(0.0, 0.0, -5.0)),
+        let player = (
+            Position(cgmath::Vector3::new(0.0, 0.0, 2.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
             KeyboardInput(None),
-            Sprite("pepe".to_string()),
+            Sprite("tree".to_string()),
         );
 
-        let pepe2 = (
-            Position(cgmath::Vector3::new(-0.5, -24.0, -20.0)),
+        let square1 = (
+            Position(cgmath::Vector3::new(-7.0, 6.0, 7.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
-            Sprite("pepe".to_string()),
+            Sprite("red".to_string()),
         );
 
-        let pepe3 = (
-            Position(cgmath::Vector3::new(7.5, 7.0, -10.0)),
+        let square2 = (
+            Position(cgmath::Vector3::new(8.0, -3.0, 12.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
-            Sprite("pepe".to_string()),
+            Sprite("blue".to_string()),
         );
 
-        let pepe4 = (
-            Position(cgmath::Vector3::new(-5.5, 14.0, -15.0)),
+        let square3 = (
+            Position(cgmath::Vector3::new(-5.5, -4.0, 15.0)),
             Rotation(Quaternion::from_axis_angle(
-                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(0.0, 1.0, 0.0),
                 Deg(0.0),
             )),
             Scale(1.0),
-            Sprite("pepe".to_string()),
+            Sprite("green".to_string()),
         );
 
-        world.spawn(pepe);
-        world.spawn(pepe2);
-        world.spawn(pepe3);
-        world.spawn(pepe4);
+        world.spawn(player);
+        world.spawn(square1);
+        world.spawn(square2);
+        world.spawn(square3);
+        // world.spawn(leaves);
 
         let camera = ParallaxCamera::new(
-            glam::Vec3::new(0.0, 0.0, 0.0),
-            glam::Vec3::new(0.0, 0.0, -1.0),
-            2.0,
+            glam::Vec3::new(0.0, 0.0, -5.0),
+            glam::Vec3::new(0.0, 0.0, 1.0),
+            1.0,
             1.5,
             1.0,
             50.0,
@@ -110,16 +111,16 @@ impl Game {
                         virtual_keycode: Some(VirtualKeyCode::Left),
                         ..
                     } => {
-                        pos.0 += Vector3::new(move_speed, 0.0, 0.0);
-                        self.camera.eye += Vec3::new(move_speed, 0.0, 0.0);
+                        pos.0 -= Vector3::new(move_speed, 0.0, 0.0);
+                        self.camera.eye -= Vec3::new(move_speed, 0.0, 0.0);
                     }
                     winit::event::KeyboardInput {
                         state: ElementState::Pressed,
                         virtual_keycode: Some(VirtualKeyCode::Right),
                         ..
                     } => {
-                        pos.0 -= Vector3::new(move_speed, 0.0, 0.0);
-                        self.camera.eye -= Vec3::new(move_speed, 0.0, 0.0);
+                        pos.0 += Vector3::new(move_speed, 0.0, 0.0);
+                        self.camera.eye += Vec3::new(move_speed, 0.0, 0.0);
                     }
                     _ => (),
                 }
