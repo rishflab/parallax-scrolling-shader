@@ -4,6 +4,8 @@ use std::f32;
 
 pub const SPRITE_SCALING_FACTOR: u8 = 2;
 
+pub struct ActiveCamera;
+
 pub trait Camera {
     fn generate_matrix(&self) -> CameraUniform;
 }

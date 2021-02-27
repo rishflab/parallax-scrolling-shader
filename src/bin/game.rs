@@ -2,8 +2,8 @@ extern crate erlking;
 
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use erlking::{
-    app::App, camera::ParallaxCamera, ActiveCamera, Game, KeyboardInput, Position, Rotation, Scale,
-    Sprite,
+    camera::{ActiveCamera, ParallaxCamera},
+    App, Game, KeyboardInput, Position, Rotation, Scale, Sprite,
 };
 use glam::Vec3;
 use hecs::World;

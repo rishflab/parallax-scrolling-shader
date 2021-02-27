@@ -1,7 +1,7 @@
 #![feature(in_band_lifetimes)]
 
 use crate::{
-    camera::{Camera, ParallaxCamera},
+    camera::{ActiveCamera, Camera, ParallaxCamera},
     gpu_primitives::{Instance, InstanceRaw},
     scene::Scene,
     time::Timer,
@@ -11,21 +11,22 @@ use hecs::{DynamicBundle, Entity, World};
 use std::{collections::HashMap, time::Duration};
 use winit::event::WindowEvent;
 
-pub mod app;
+mod app;
 pub mod camera;
-pub mod gpu_primitives;
+mod gpu_primitives;
 mod renderer;
-pub mod scene;
-pub mod sprite;
-pub mod texture;
-pub mod time;
+mod scene;
+mod sprite;
+mod texture;
+mod time;
+
+pub use app::App;
 
 pub struct Position(pub Vector3<f32>);
 pub struct Rotation(pub Quaternion<f32>);
 pub struct Scale(pub u8);
 pub struct Sprite(pub String);
 pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
-pub struct ActiveCamera;
 
 pub struct Game<'a> {
     world: World,

@@ -22,7 +22,7 @@ impl Timer {
     pub fn elapsed(&self) -> Duration {
         self.elapsed
     }
-    pub fn fps(&self) -> f64 {
+    pub fn _fps(&self) -> f64 {
         Duration::from_secs(1).as_secs_f64() / self.elapsed.as_secs_f64()
     }
 }
