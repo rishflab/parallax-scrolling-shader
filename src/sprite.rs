@@ -2,12 +2,12 @@ use crate::{
     gpu_primitives::{Index, InstanceRaw, Vertex},
     texture::Texture,
 };
-use image::{GenericImageView, ImageBuffer};
+use image::GenericImageView;
 use std::{ops::Range, path::Path};
 use wgpu::util::DeviceExt;
 
 pub const MAX_INSTANCES: u64 = 1024;
-pub const PIXELS_PER_METRE: u32 = 512;
+pub const PIXELS_PER_METRE: u32 = 32;
 
 pub struct Sprite {
     pub id: String,
@@ -16,7 +16,6 @@ pub struct Sprite {
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     num_indices: u32,
-    _texture: Texture,
 }
 
 impl Sprite {
@@ -30,8 +29,6 @@ impl Sprite {
     ) -> Self {
         let image = image::open(path).unwrap();
         let (tex_width, tex_height) = image.dimensions();
-
-        let (tex_width, tex_height) = (512, 512);
 
         let (vertex_data, index_data) = create_vertices(tex_width, tex_height, PIXELS_PER_METRE);
 
@@ -67,7 +64,7 @@ impl Sprite {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Buffer(instance_buffer.slice(..)),
+                    resource: instance_buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
@@ -88,7 +85,6 @@ impl Sprite {
             bind_group,
             num_indices: index_data.len() as u32,
             id,
-            _texture: texture,
         }
     }
 
@@ -124,90 +120,39 @@ where
         bind_group: &'b wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, model.vertex_buffer.slice(..));
-        self.set_index_buffer(model.index_buffer.slice(..));
+        self.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         self.set_bind_group(0, bind_group, &[]);
         self.draw_indexed(0..model.num_indices, 0, instances);
     }
 }
-
-// fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) ->
-// (Vec<Vertex>, Vec<Index>) {     let w = (width as f32 / pixel_per_metre as
-// f32) / 2.0;     let h = (height as f32 / pixel_per_metre as f32) / 2.0;
-//     let vertex_data = [
-//         Vertex {
-//             _pos: [-w, -h, 0.0, 1.0],
-//             _tex_coord: [0.0, 1.0],
-//         },
-//         Vertex {
-//             _pos: [w, -h, 0.0, 1.0],
-//             _tex_coord: [1.0, 1.0],
-//         },
-//         Vertex {
-//             _pos: [w, h, 0.0, 1.0],
-//             _tex_coord: [1.0, 0.0],
-//         },
-//         Vertex {
-//             _pos: [-w, h, 0.0, 1.0],
-//             _tex_coord: [0.0, 0.0],
-//         },
-//     ];
-//
-//     let index_data: &[u16] = &[0, 1, 2, 2, 3, 0];
-//
-//     (vertex_data.to_vec(), index_data.to_vec())
-// }
-
-fn vertex(pos: [i8; 3], tc: [i8; 2]) -> Vertex {
-    Vertex {
-        _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, 1.0],
-        _tex_coord: [tc[0] as f32, tc[1] as f32],
-    }
-}
-
 fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex>, Vec<Index>) {
     let w = (width as f32 / pixel_per_metre as f32) / 2.0;
     let h = (height as f32 / pixel_per_metre as f32) / 2.0;
+    let centre = [0.0, 0.0, 0.0, 1.0];
     let vertex_data = [
-        // top (0, 0, 1)
-        vertex([-1, -1, 1], [0, 0]),
-        vertex([1, -1, 1], [1, 0]),
-        vertex([1, 1, 1], [1, 1]),
-        vertex([-1, 1, 1], [0, 1]),
-        // bottom (0, 0, -1)
-        vertex([-1, 1, -1], [1, 0]),
-        vertex([1, 1, -1], [0, 0]),
-        vertex([1, -1, -1], [0, 1]),
-        vertex([-1, -1, -1], [1, 1]),
-        // right (1, 0, 0)
-        vertex([1, -1, -1], [0, 0]),
-        vertex([1, 1, -1], [1, 0]),
-        vertex([1, 1, 1], [1, 1]),
-        vertex([1, -1, 1], [0, 1]),
-        // left (-1, 0, 0)
-        vertex([-1, -1, 1], [1, 0]),
-        vertex([-1, 1, 1], [0, 0]),
-        vertex([-1, 1, -1], [0, 1]),
-        vertex([-1, -1, -1], [1, 1]),
-        // front (0, 1, 0)
-        vertex([1, 1, -1], [1, 0]),
-        vertex([-1, 1, -1], [0, 0]),
-        vertex([-1, 1, 1], [0, 1]),
-        vertex([1, 1, 1], [1, 1]),
-        // back (0, -1, 0)
-        vertex([1, -1, 1], [0, 0]),
-        vertex([-1, -1, 1], [1, 0]),
-        vertex([-1, -1, -1], [1, 1]),
-        vertex([1, -1, -1], [0, 1]),
+        Vertex {
+            _pos: [-w, -h, 0.0, 1.0],
+            _tex_coord: [0.0, 1.0],
+            _centre: centre,
+        },
+        Vertex {
+            _pos: [w, -h, 0.0, 1.0],
+            _tex_coord: [1.0, 1.0],
+            _centre: centre,
+        },
+        Vertex {
+            _pos: [w, h, 0.0, 1.0],
+            _tex_coord: [1.0, 0.0],
+            _centre: centre,
+        },
+        Vertex {
+            _pos: [-w, h, 0.0, 1.0],
+            _tex_coord: [0.0, 0.0],
+            _centre: centre,
+        },
     ];
 
-    let index_data: &[u16] = &[
-        0, 1, 2, 2, 3, 0, // top
-        4, 5, 6, 6, 7, 4, // bottom
-        8, 9, 10, 10, 11, 8, // right
-        12, 13, 14, 14, 15, 12, // left
-        16, 17, 18, 18, 19, 16, // front
-        20, 21, 22, 22, 23, 20, // back
-    ];
+    let index_data: &[u16] = &[0, 1, 2, 2, 3, 0];
 
     (vertex_data.to_vec(), index_data.to_vec())
 }

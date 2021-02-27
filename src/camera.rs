@@ -1,65 +1,65 @@
-use cgmath::{Deg, Rad};
+use crate::{app::WINDOW_SIZE, gpu_primitives::CameraUniform, sprite::PIXELS_PER_METRE};
 use glam::{Mat4, Vec3, Vec4};
-use num_traits::real::Real;
 use std::f32;
 
+pub const SPRITE_SCALING_FACTOR: u8 = 2;
+
+pub trait Camera {
+    fn generate_matrix(&self) -> CameraUniform;
+}
+
 #[derive(Clone, Copy)]
-pub struct Camera {
+pub struct ParallaxCamera {
     pub eye: glam::Vec3,
-    pub look_at: glam::Vec3,
-    pub height: f32,
-    pub aspect_ratio: f32,
+    pub look_dir: glam::Vec3,
+    pub fov_y: f32,
     pub near: f32,
     pub far: f32,
 }
 
-impl Camera {
-    pub fn new(eye: glam::Vec3, look_at: glam::Vec3, height: f32, aspect_ratio: f32) -> Self {
-        Camera {
+impl ParallaxCamera {
+    pub fn new(eye: glam::Vec3, look_to: glam::Vec3, fov_y: f32, near: f32, far: f32) -> Self {
+        ParallaxCamera {
             eye,
-            look_at,
-            height,
-            aspect_ratio,
-            near: 0.0,
-            far: 1000.0,
+            look_dir: look_to,
+            fov_y,
+            near,
+            far,
         }
     }
-    pub fn generate_matrix(&self) -> glam::Mat4 {
-        let z_near = 10.0;
-        let z_far = 100.0;
-        let aspect_ratio = 1.5;
-        let fovy = 1.0;
-        let fovx = aspect_ratio * fovy;
+    pub fn generate_ortho(&self) -> glam::Mat4 {
+        let h =
+            (WINDOW_SIZE.height as f32) / (SPRITE_SCALING_FACTOR as f32 * PIXELS_PER_METRE as f32);
+        let w =
+            (WINDOW_SIZE.width as f32) / (SPRITE_SCALING_FACTOR as f32 * PIXELS_PER_METRE as f32);
 
-        let mx_perspective = glam::Mat4::perspective_lh(fovy, self.aspect_ratio, z_near, z_far);
+        let mx_ortho =
+            glam::Mat4::orthographic_lh(-w / 2.0, w / 2.0, -h / 2.0, h / 2.0, self.near, self.far);
 
-        let (sin_fovy, cos_fovy) = (0.5 * fovy).sin_cos();
-        let (sin_fovx, cos_fovx) = (0.5 * fovx).sin_cos();
-        let h = z_near * sin_fovy / cos_fovy;
-        let w = h * aspect_ratio;
+        let mx_view = look_to_lh(self.eye, self.look_dir, Vec3::unit_y());
 
-        let mx_ortho = glam::Mat4::orthographic_lh(-w, w, -h, h, z_far, z_near);
-
-        let mx_view = look_to_lh(self.eye, Vec3::new(0.0, 0.0, -1.0), -Vec3::unit_y());
-
-        // mx_perspective * mx_view
         mx_ortho * mx_view
     }
 
-    pub fn update(&mut self, eye: glam::Vec3, look_at: glam::Vec3) {
-        self.eye = eye;
-        self.look_at = look_at;
+    pub fn generate_perspective(&self) -> glam::Mat4 {
+        let mx_perspective = glam::Mat4::perspective_lh(
+            self.fov_y,
+            WINDOW_SIZE.width as f32 / WINDOW_SIZE.height as f32,
+            self.near,
+            self.far,
+        );
+
+        let mx_view = look_to_lh(self.eye, self.look_dir, Vec3::unit_y());
+
+        mx_perspective * mx_view
     }
 }
 
-impl Default for Camera {
-    fn default() -> Self {
-        Self::new(
-            glam::Vec3::new(0.0, -5.0, 0.0),
-            glam::Vec3::new(0.0, 0.0, 0.0),
-            1.0,
-            1.5,
-        )
+impl Camera for ParallaxCamera {
+    fn generate_matrix(&self) -> CameraUniform {
+        let ortho = *self.generate_ortho().as_ref();
+        let persp = *self.generate_perspective().as_ref();
+        CameraUniform { ortho, persp }
     }
 }
 
