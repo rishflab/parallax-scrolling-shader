@@ -5,13 +5,13 @@ use std::f32;
 pub const SPRITE_SCALING_FACTOR: u8 = 2;
 
 pub trait Camera {
-    fn generate_matrix(&self) -> Mat4;
+    fn generate_matrix(&self) -> CameraUniform;
 }
 
 #[derive(Clone, Copy)]
 pub struct ParallaxCamera {
     pub eye: glam::Vec3,
-    pub look_to: glam::Vec3,
+    pub look_dir: glam::Vec3,
     pub fov_y: f32,
     pub near: f32,
     pub far: f32,
@@ -21,7 +21,7 @@ impl ParallaxCamera {
     pub fn new(eye: glam::Vec3, look_to: glam::Vec3, fov_y: f32, near: f32, far: f32) -> Self {
         ParallaxCamera {
             eye,
-            look_to,
+            look_dir: look_to,
             fov_y,
             near,
             far,
@@ -36,7 +36,7 @@ impl ParallaxCamera {
         let mx_ortho =
             glam::Mat4::orthographic_lh(-w / 2.0, w / 2.0, -h / 2.0, h / 2.0, self.near, self.far);
 
-        let mx_view = look_to_lh(self.eye, self.look_to, Vec3::unit_y());
+        let mx_view = look_to_lh(self.eye, self.look_dir, Vec3::unit_y());
 
         mx_ortho * mx_view
     }
@@ -49,12 +49,14 @@ impl ParallaxCamera {
             self.far,
         );
 
-        let mx_view = look_to_lh(self.eye, self.look_to, Vec3::unit_y());
+        let mx_view = look_to_lh(self.eye, self.look_dir, Vec3::unit_y());
 
         mx_perspective * mx_view
     }
+}
 
-    pub fn camera_uniform(&self) -> CameraUniform {
+impl Camera for ParallaxCamera {
+    fn generate_matrix(&self) -> CameraUniform {
         let ortho = *self.generate_ortho().as_ref();
         let persp = *self.generate_perspective().as_ref();
         CameraUniform { ortho, persp }

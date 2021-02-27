@@ -23,7 +23,7 @@ pub struct CameraUniform {
 unsafe impl Pod for CameraUniform {}
 unsafe impl Zeroable for CameraUniform {}
 
-pub(crate) struct Instance {
+pub struct Instance {
     pub position: cgmath::Vector3<f32>,
     pub rotation: cgmath::Quaternion<f32>,
     pub scale: f32,

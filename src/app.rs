@@ -1,5 +1,4 @@
-use crate::renderer::Renderer;
-
+use crate::{renderer::Renderer, Game};
 use winit::{
     dpi::LogicalSize,
     event::{self, WindowEvent},
@@ -80,7 +79,7 @@ impl App {
         }
     }
 
-    pub fn run(mut self, event_loop: EventLoop<()>) {
+    pub fn run(mut self, event_loop: EventLoop<()>, mut game: Game<'static>) {
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             width: self.size.width,
@@ -90,8 +89,6 @@ impl App {
             format: wgpu::TextureFormat::Bgra8UnormSrgb,
         };
         let mut swap_chain = self.device.create_swap_chain(&self.surface, &sc_desc);
-
-        let mut game = crate::game::Game::new();
 
         let mut renderer = Renderer::init(&sc_desc, &mut self.device, &self.queue);
 

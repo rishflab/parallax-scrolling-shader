@@ -7,7 +7,7 @@ use crate::{
 use std::{mem, path::Path};
 use wgpu::{util::DeviceExt, BlendFactor, BlendOperation, VertexBufferLayout};
 
-pub(crate) struct Renderer {
+pub struct Renderer {
     sprites: Vec<Sprite>,
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
@@ -15,7 +15,7 @@ pub(crate) struct Renderer {
 }
 
 impl Renderer {
-    pub(crate) fn init(
+    pub fn init(
         sc_desc: &wgpu::SwapChainDescriptor,
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
@@ -203,7 +203,7 @@ impl Renderer {
         }
     }
 
-    pub(crate) fn render(
+    pub fn render(
         &mut self,
         frame: &wgpu::SwapChainTexture,
         device: &wgpu::Device,
@@ -211,9 +211,11 @@ impl Renderer {
         _sc_desc: &wgpu::SwapChainDescriptor,
         scene: Scene,
     ) {
-        let mx_total = scene.camera.camera_uniform();
-
-        queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&mx_total));
+        queue.write_buffer(
+            &self.uniform_buffer,
+            0,
+            bytemuck::bytes_of(&scene.camera_uniform),
+        );
 
         for sprite in self.sprites.iter_mut() {
             if let Some(instances) = scene.sprite_instances.get(&sprite.id) {
