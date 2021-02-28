@@ -4,7 +4,7 @@ use crate::{
     sprite::{DrawSprite, Sprite},
     texture::Texture,
 };
-use std::{mem, path::Path};
+use std::mem;
 use wgpu::{util::DeviceExt, BlendFactor, BlendOperation, VertexBufferLayout};
 
 pub struct Renderer {
@@ -82,7 +82,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/player.png"),
+                &"assets/player.png",
                 "player".to_string(),
             ),
             Sprite::new(
@@ -90,7 +90,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/apple.png"),
+                &"assets/apple.png",
                 "apple".to_string(),
             ),
             Sprite::new(
@@ -98,7 +98,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/ashberry.png"),
+                &"assets/ashberry.png",
                 "ashberry".to_string(),
             ),
             Sprite::new(
@@ -106,7 +106,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/baobab.png"),
+                &"assets/baobab.png",
                 "baobab".to_string(),
             ),
             Sprite::new(
@@ -114,7 +114,7 @@ impl Renderer {
                 queue,
                 &bind_group_layout,
                 &uniform_buffer_binding_resource,
-                Path::new(&"assets/beech.png"),
+                &"assets/beech.png",
                 "beech".to_string(),
             ),
         ];

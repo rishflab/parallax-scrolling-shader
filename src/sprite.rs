@@ -24,7 +24,7 @@ impl Sprite {
         queue: &wgpu::Queue,
         bind_group_layout: &wgpu::BindGroupLayout,
         uniform_buffer_binding_resource: &wgpu::BindingResource,
-        path: &Path,
+        path: impl AsRef<Path>,
         id: String,
     ) -> Self {
         let image = image::open(path).unwrap();
