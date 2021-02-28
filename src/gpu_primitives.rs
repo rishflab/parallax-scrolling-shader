@@ -1,5 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
+pub type Index = u16;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct Vertex {
@@ -7,8 +9,6 @@ pub struct Vertex {
     pub _tex_coord: [f32; 2],
     pub _centre: [f32; 4],
 }
-
-pub type Index = u16;
 
 unsafe impl Pod for Vertex {}
 unsafe impl Zeroable for Vertex {}
