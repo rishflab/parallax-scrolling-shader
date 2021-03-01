@@ -2,7 +2,6 @@
 
 layout(location=0) in vec4 a_position;
 layout(location=1) in vec2 a_tex_coords;
-layout(location=2) in vec4 centre;
 
 layout(location=0) out vec2 v_tex_coords;
 
@@ -19,6 +18,8 @@ buffer Instances {
 void main() {
 
     v_tex_coords = a_tex_coords;
+
+    vec4 centre = vec4(vec3(0.0), 1.0);
 
     vec4 p_c = persp * s_models[gl_InstanceIndex] * centre;
 

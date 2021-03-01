@@ -98,3 +98,9 @@ impl<'a> Game<'a> {
         }
     }
 }
+
+impl<'a> Default for Game<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -7,7 +7,6 @@ pub type Index = u16;
 pub struct Vertex {
     pub _pos: [f32; 4],
     pub _tex_coord: [f32; 2],
-    pub _centre: [f32; 4],
 }
 
 unsafe impl Pod for Vertex {}

@@ -153,12 +153,6 @@ impl Renderer {
                             offset: wgpu::VertexFormat::Float4.size(),
                             shader_location: 1,
                         },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float4,
-                            offset: wgpu::VertexFormat::Float4.size()
-                                + wgpu::VertexFormat::Float2.size(),
-                            shader_location: 2,
-                        },
                     ],
                 }],
             },
