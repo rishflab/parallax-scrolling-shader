@@ -23,7 +23,6 @@ impl Sprite {
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
         bind_group_layout: &wgpu::BindGroupLayout,
-        uniform_buffer_binding_resource: &wgpu::BindingResource,
         path: impl AsRef<Path>,
         id: String,
     ) -> Self {
@@ -54,20 +53,15 @@ impl Sprite {
 
         let texture = Texture::create_sprite_texture(&device, &queue, image.into_rgba());
 
-        // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: uniform_buffer_binding_resource.clone(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
                     resource: wgpu::BindingResource::TextureView(&texture.view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 2,
+                    binding: 1,
                     resource: wgpu::BindingResource::Sampler(&texture.sampler),
                 },
             ],
@@ -101,7 +95,7 @@ where
         &mut self,
         model: &'b Sprite,
         instances: Range<u32>,
-        bind_group: &'b wgpu::BindGroup,
+        uniform_bind_group: &'b wgpu::BindGroup,
     );
 }
 
@@ -113,12 +107,13 @@ where
         &mut self,
         model: &'b Sprite,
         instances: Range<u32>,
-        bind_group: &'b wgpu::BindGroup,
+        uniform_bind_group: &'b wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, model.vertex_buffer.slice(..));
         self.set_vertex_buffer(1, model.instance_buffer.slice(..));
         self.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-        self.set_bind_group(0, bind_group, &[]);
+        self.set_bind_group(0, uniform_bind_group, &[]);
+        self.set_bind_group(1, &model.bind_group, &[]);
         self.draw_indexed(0..model.num_indices, 0, instances);
     }
 }

@@ -12,6 +12,7 @@ pub struct Renderer {
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     depth_texture: Texture,
+    uniform_bind_group: wgpu::BindGroup,
 }
 
 impl Renderer {
@@ -26,12 +27,10 @@ impl Renderer {
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
-        let uniform_buffer_binding_resource = uniform_buffer.as_entire_binding();
-
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
+        let uniform_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStage::VERTEX,
                     ty: wgpu::BindingType::Buffer {
@@ -42,76 +41,86 @@ impl Renderer {
                         has_dynamic_offset: false,
                     },
                     count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler {
-                        filtering: false,
-                        comparison: false,
-                    },
-                    count: None,
-                },
-            ],
+                }],
+            });
+
+        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &uniform_bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer.as_entire_binding(),
+            }],
         });
+
+        let sprite_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStage::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler {
+                            filtering: false,
+                            comparison: false,
+                        },
+                        count: None,
+                    },
+                ],
+            });
 
         // Load sprites onto GPU
         let sprites = vec![
             Sprite::new(
                 device,
                 queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
+                &sprite_bind_group_layout,
                 &"assets/player.png",
                 "player".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
+                &sprite_bind_group_layout,
                 &"assets/apple.png",
                 "apple".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
+                &sprite_bind_group_layout,
                 &"assets/ashberry.png",
                 "ashberry".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
+                &sprite_bind_group_layout,
                 &"assets/baobab.png",
                 "baobab".to_string(),
             ),
             Sprite::new(
                 device,
                 queue,
-                &bind_group_layout,
-                &uniform_buffer_binding_resource,
-                &"assets/beech.png",
+                &sprite_bind_group_layout,
+                "assets/beech.png",
                 "beech".to_string(),
             ),
         ];
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[&uniform_bind_group_layout, &sprite_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -169,6 +178,7 @@ impl Renderer {
             pipeline,
             sprites,
             depth_texture,
+            uniform_bind_group,
         }
     }
 
@@ -224,7 +234,7 @@ impl Renderer {
 
             for sprite in self.sprites.iter_mut() {
                 if let Some(instances) = scene.sprite_instances.get(&sprite.id) {
-                    rpass.draw_sprite(sprite, 0..instances.len() as u32, &sprite.bind_group);
+                    rpass.draw_sprite(sprite, 0..instances.len() as u32, &self.uniform_bind_group);
                 }
             }
         }
