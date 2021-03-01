@@ -1,11 +1,11 @@
 use crate::{
-    gpu_primitives::{CameraUniform, Vertex},
+    gpu_primitives::{CameraUniform, InstanceRaw, Vertex},
     scene::Scene,
     sprite::{DrawSprite, Sprite},
     texture::Texture,
 };
 use std::mem;
-use wgpu::{util::DeviceExt, BlendFactor, BlendOperation, VertexBufferLayout};
+use wgpu::{util::DeviceExt, BlendFactor, BlendOperation};
 
 pub struct Renderer {
     sprites: Vec<Sprite>,
@@ -45,16 +45,6 @@ impl Renderer {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Storage { read_only: false },
-                        min_binding_size: None,
-                        has_dynamic_offset: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float { filterable: false },
@@ -64,7 +54,7 @@ impl Renderer {
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
-                    binding: 3,
+                    binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Sampler {
                         filtering: false,
@@ -139,22 +129,7 @@ impl Renderer {
             vertex: wgpu::VertexState {
                 module: &vs_module,
                 entry_point: "main",
-                buffers: &[VertexBufferLayout {
-                    array_stride: mem::size_of::<Vertex>() as wgpu::BufferAddress,
-                    step_mode: wgpu::InputStepMode::Vertex,
-                    attributes: &[
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float4,
-                            offset: 0,
-                            shader_location: 0,
-                        },
-                        wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float2,
-                            offset: wgpu::VertexFormat::Float4.size(),
-                            shader_location: 1,
-                        },
-                    ],
-                }],
+                buffers: &[Vertex::desc(), InstanceRaw::desc()],
             },
             fragment: Some(wgpu::FragmentState {
                 module: &fs_module,

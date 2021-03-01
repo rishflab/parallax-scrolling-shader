@@ -11,8 +11,8 @@ pub const PIXELS_PER_METRE: u32 = 32;
 
 pub struct Sprite {
     pub id: String,
-    pub(crate) vertex_buffer: wgpu::Buffer,
-    pub(crate) index_buffer: wgpu::Buffer,
+    pub vertex_buffer: wgpu::Buffer,
+    pub index_buffer: wgpu::Buffer,
     pub instance_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     num_indices: u32,
@@ -46,8 +46,8 @@ impl Sprite {
 
         let instance_buf_size = MAX_INSTANCES * std::mem::size_of::<InstanceRaw>() as u64;
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Uniform Buffer"),
-            usage: wgpu::BufferUsage::STORAGE | wgpu::BufferUsage::COPY_DST,
+            label: Some("Instance Buffer"),
+            usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
             size: instance_buf_size,
             mapped_at_creation: false,
         });
@@ -64,14 +64,10 @@ impl Sprite {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: instance_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
                     resource: wgpu::BindingResource::TextureView(&texture.view),
                 },
                 wgpu::BindGroupEntry {
-                    binding: 3,
+                    binding: 2,
                     resource: wgpu::BindingResource::Sampler(&texture.sampler),
                 },
             ],
@@ -120,6 +116,7 @@ where
         bind_group: &'b wgpu::BindGroup,
     ) {
         self.set_vertex_buffer(0, model.vertex_buffer.slice(..));
+        self.set_vertex_buffer(1, model.instance_buffer.slice(..));
         self.set_index_buffer(model.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         self.set_bind_group(0, bind_group, &[]);
         self.draw_indexed(0..model.num_indices, 0, instances);
@@ -130,20 +127,20 @@ fn create_vertices(width: u32, height: u32, pixel_per_metre: u32) -> (Vec<Vertex
     let h = (height as f32 / pixel_per_metre as f32) / 2.0;
     let vertex_data = [
         Vertex {
-            _pos: [-w, -h, 0.0, 1.0],
-            _tex_coord: [0.0, 1.0],
+            pos: [-w, -h, 0.0, 1.0],
+            tex_coord: [0.0, 1.0],
         },
         Vertex {
-            _pos: [w, -h, 0.0, 1.0],
-            _tex_coord: [1.0, 1.0],
+            pos: [w, -h, 0.0, 1.0],
+            tex_coord: [1.0, 1.0],
         },
         Vertex {
-            _pos: [w, h, 0.0, 1.0],
-            _tex_coord: [1.0, 0.0],
+            pos: [w, h, 0.0, 1.0],
+            tex_coord: [1.0, 0.0],
         },
         Vertex {
-            _pos: [-w, h, 0.0, 1.0],
-            _tex_coord: [0.0, 0.0],
+            pos: [-w, h, 0.0, 1.0],
+            tex_coord: [0.0, 0.0],
         },
     ];
 
