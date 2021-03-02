@@ -25,6 +25,9 @@ impl Timer {
     pub fn _fps(&self) -> f64 {
         Duration::from_secs(1).as_secs_f64() / self.elapsed.as_secs_f64()
     }
+    pub fn now(&self) -> Instant {
+        self.tick
+    }
 }
 
 impl Default for Timer {

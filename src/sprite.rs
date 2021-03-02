@@ -1,10 +1,11 @@
 use crate::{
     gpu_primitives::{Index, InstanceRaw, Vertex},
-    texture::Texture,
+    renderer::TEXTURE_ARRAY_SIZE,
+    texture::ArrayTexture,
 };
 use image::GenericImageView;
-use std::{ops::Range, path::Path};
-use wgpu::util::DeviceExt;
+use std::{convert::TryInto, ops::Range, path::Path};
+use wgpu::{util::DeviceExt, TextureView};
 
 pub const MAX_INSTANCES: u64 = 1024;
 pub const PIXELS_PER_METRE: u32 = 32;
@@ -22,14 +23,46 @@ impl Sprite {
     pub fn new(
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
-        bind_group_layout: &wgpu::BindGroupLayout,
-        path: impl AsRef<Path>,
-        id: String,
+        sprite_bind_group_layout: &wgpu::BindGroupLayout,
+        paths: Vec<impl AsRef<Path>>,
+        id: &str,
     ) -> Self {
+        let path = paths
+            .first()
+            .expect("at least 1 animated sprite file was specified");
         let image = image::open(path).unwrap();
         let (tex_width, tex_height) = image.dimensions();
-
         let (vertex_data, index_data) = create_vertices(tex_width, tex_height, PIXELS_PER_METRE);
+
+        let textures: Vec<ArrayTexture> = paths
+            .iter()
+            .map(|path| {
+                let image = image::open(path)
+                    .unwrap_or_else(|_| panic!("animated sprite exists: {:?}", path.as_ref()));
+                ArrayTexture::new(&device, &queue, image.into_rgba())
+            })
+            .collect();
+
+        let mut i = 0;
+        let mut views: Vec<&TextureView> = vec![];
+
+        for at in textures.iter() {
+            views.push(&at.view);
+            i += 1;
+        }
+
+        for _ in i..TEXTURE_ARRAY_SIZE {
+            views.push(
+                &textures
+                    .first()
+                    .expect("at least one texture provided")
+                    .view,
+            )
+        }
+
+        let views: [&TextureView; TEXTURE_ARRAY_SIZE as usize] = views
+            .try_into()
+            .expect("correct number of textures views provided");
 
         let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -51,18 +84,17 @@ impl Sprite {
             mapped_at_creation: false,
         });
 
-        let texture = Texture::create_sprite_texture(&device, &queue, image.into_rgba());
-
+        // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: bind_group_layout,
+            layout: sprite_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&texture.view),
+                    resource: wgpu::BindingResource::TextureViewArray(&views),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&texture.sampler),
+                    resource: wgpu::BindingResource::Sampler(&ArrayTexture::create_sampler(device)),
                 },
             ],
             label: None,
@@ -74,7 +106,7 @@ impl Sprite {
             instance_buffer,
             bind_group,
             num_indices: index_data.len() as u32,
-            id,
+            id: id.to_string(),
         }
     }
 

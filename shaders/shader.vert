@@ -6,8 +6,11 @@ layout(location=2) in vec4 model_matrix_0;
 layout(location=3) in vec4 model_matrix_1;
 layout(location=4) in vec4 model_matrix_2;
 layout(location=5) in vec4 model_matrix_3;
+layout(location=6) in uint frame_id;
 
 layout(location=0) out vec2 v_tex_coords;
+layout(location=1) flat out uint v_tex_id;
+
 
 layout(set = 0, binding = 0) uniform Uniforms {
     mat4 ortho;
@@ -24,6 +27,7 @@ void main() {
     );
 
     v_tex_coords = a_tex_coords;
+    v_tex_id = frame_id;
 
     vec4 centre = vec4(vec3(0.0), 1.0);
 

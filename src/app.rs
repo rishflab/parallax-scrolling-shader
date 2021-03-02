@@ -44,7 +44,9 @@ impl App {
             .await
             .unwrap();
 
-        let optional_features = wgpu::Features::empty();
+        let optional_features = wgpu::Features::empty()
+            | wgpu::Features::SAMPLED_TEXTURE_BINDING_ARRAY
+            | wgpu::Features::SAMPLED_TEXTURE_ARRAY_DYNAMIC_INDEXING;
         let required_features = wgpu::Features::empty();
         let adapter_features = adapter.features();
         assert!(
@@ -53,7 +55,10 @@ impl App {
             required_features - adapter_features
         );
 
-        let needed_limits = wgpu::Limits::default();
+        let limits = wgpu::Limits {
+            max_sampled_textures_per_shader_stage: 1024,
+            ..Default::default()
+        };
 
         let trace_dir = std::env::var("WGPU_TRACE");
         let (device, queue) = adapter
@@ -61,7 +66,7 @@ impl App {
                 &wgpu::DeviceDescriptor {
                     label: wgpu::Label::None,
                     features: (optional_features & adapter_features) | required_features,
-                    limits: needed_limits,
+                    limits,
                 },
                 trace_dir.ok().as_ref().map(std::path::Path::new),
             )

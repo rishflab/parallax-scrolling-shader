@@ -8,10 +8,13 @@ use crate::{
 };
 use cgmath::{Quaternion, Vector3};
 use hecs::{DynamicBundle, Entity, World};
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 use winit::event::WindowEvent;
 
-mod app;
+pub mod app;
 pub mod camera;
 mod gpu_primitives;
 mod renderer;
@@ -25,13 +28,16 @@ pub use app::App;
 pub struct Position(pub Vector3<f32>);
 pub struct Rotation(pub Quaternion<f32>);
 pub struct Scale(pub u8);
-pub struct Sprite(pub String);
+pub struct Sprite {
+    pub id: String,
+    pub frame_id: u32,
+}
 pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 
 pub struct Game<'a> {
     world: World,
     timer: Timer,
-    systems: Vec<&'a dyn Fn(&World, Duration)>,
+    systems: Vec<&'a dyn Fn(&World, Duration, Instant)>,
 }
 
 impl<'a> Game<'a> {
@@ -45,35 +51,36 @@ impl<'a> Game<'a> {
     fn run(&mut self) -> Scene {
         self.timer.tick();
         for system in self.systems.iter() {
-            system(&self.world, self.timer.elapsed())
+            system(&self.world, self.timer.elapsed(), self.timer.now())
         }
         self.build_scene()
     }
     pub fn spawn_entity(&mut self, components: impl DynamicBundle) -> Entity {
         self.world.spawn(components)
     }
-    pub fn add_system(&mut self, system: &'a dyn Fn(&World, Duration)) {
+    pub fn add_system(&mut self, system: &'a dyn Fn(&World, Duration, Instant)) {
         self.systems.push(system)
     }
     fn build_scene(&mut self) -> Scene {
         let mut sprites: HashMap<String, Vec<InstanceRaw>> = HashMap::default();
 
-        for (_, (pos, rot, scale, sprite_id)) in
-            &mut self
-                .world
-                .query::<(&Position, &Rotation, &Scale, &Sprite)>()
+        for (_, (pos, rot, scale, sprite)) in &mut self
+            .world
+            .query::<(&Position, &Rotation, &Scale, &Sprite)>()
         {
             let instance_raw = InstanceRaw::from(Instance {
                 position: pos.0,
                 rotation: rot.0,
                 scale: scale.0 as f32,
+                frame_id: sprite.frame_id,
             });
-            if let Some(instances) = sprites.get(&sprite_id.0) {
+            if let Some(instances) = sprites.get(&sprite.id) {
+                // TODO: try and remove these clones
                 let mut new = instances.clone();
                 new.push(instance_raw);
-                sprites.insert(sprite_id.0.clone(), new);
+                sprites.insert(sprite.id.clone(), new);
             } else {
-                sprites.insert(sprite_id.0.clone(), vec![instance_raw]);
+                sprites.insert(sprite.id.clone(), vec![instance_raw]);
             }
         }
 

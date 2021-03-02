@@ -40,12 +40,14 @@ pub struct Instance {
     pub position: cgmath::Vector3<f32>,
     pub rotation: cgmath::Quaternion<f32>,
     pub scale: f32,
+    pub frame_id: u32,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct InstanceRaw {
     model: [[f32; 4]; 4],
+    frame_id: u32,
 }
 
 impl From<Instance> for InstanceRaw {
@@ -55,6 +57,7 @@ impl From<Instance> for InstanceRaw {
                 * cgmath::Matrix4::from(from.rotation)
                 * cgmath::Matrix4::from_scale(from.scale))
             .into(),
+            frame_id: from.frame_id,
         }
     }
 }
@@ -85,6 +88,11 @@ impl InstanceRaw {
                     offset: mem::size_of::<[f32; 12]>() as wgpu::BufferAddress,
                     shader_location: 5,
                     format: wgpu::VertexFormat::Float4,
+                },
+                wgpu::VertexAttribute {
+                    offset: mem::size_of::<[f32; 16]>() as wgpu::BufferAddress,
+                    shader_location: 6,
+                    format: wgpu::VertexFormat::Uint,
                 },
             ],
         }

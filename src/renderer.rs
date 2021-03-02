@@ -4,8 +4,10 @@ use crate::{
     sprite::{DrawSprite, Sprite},
     texture::Texture,
 };
-use std::mem;
+use std::{mem, num::NonZeroU32};
 use wgpu::{util::DeviceExt, BlendFactor, BlendOperation};
+
+pub const TEXTURE_ARRAY_SIZE: u32 = 128;
 
 pub struct Renderer {
     sprites: Vec<Sprite>,
@@ -65,7 +67,10 @@ impl Renderer {
                             view_dimension: wgpu::TextureViewDimension::D2,
                             multisampled: false,
                         },
-                        count: None,
+                        count: Some(
+                            NonZeroU32::new(TEXTURE_ARRAY_SIZE)
+                                .expect("array texture count should be a positive number"),
+                        ),
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
@@ -85,36 +90,40 @@ impl Renderer {
                 device,
                 queue,
                 &sprite_bind_group_layout,
-                &"assets/player.png",
-                "player".to_string(),
+                vec![
+                    "assets/adventurer_idle.png",
+                    "assets/adventurer_walk1.png",
+                    "assets/adventurer_walk2.png",
+                ],
+                "player",
             ),
             Sprite::new(
                 device,
                 queue,
                 &sprite_bind_group_layout,
-                &"assets/apple.png",
-                "apple".to_string(),
+                vec!["assets/apple.png"],
+                "apple",
             ),
             Sprite::new(
                 device,
                 queue,
                 &sprite_bind_group_layout,
-                &"assets/ashberry.png",
-                "ashberry".to_string(),
+                vec![&"assets/ashberry.png"],
+                "ashberry",
             ),
             Sprite::new(
                 device,
                 queue,
                 &sprite_bind_group_layout,
-                &"assets/baobab.png",
-                "baobab".to_string(),
+                vec![&"assets/baobab.png"],
+                "baobab",
             ),
             Sprite::new(
                 device,
                 queue,
                 &sprite_bind_group_layout,
-                "assets/beech.png",
-                "beech".to_string(),
+                vec![&"assets/beech.png"],
+                "beech",
             ),
         ];
 

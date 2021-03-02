@@ -1,3 +1,5 @@
+#![allow(clippy::single_match)]
+#![feature(or_patterns)]
 extern crate erlking;
 
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
@@ -7,7 +9,7 @@ use erlking::{
 };
 use glam::Vec3;
 use hecs::World;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use winit::{
     event::{ElementState, VirtualKeyCode},
     event_loop::EventLoop,
@@ -15,6 +17,32 @@ use winit::{
 
 #[derive(Clone, Copy)]
 struct MoveSpeed(f32);
+
+enum PlayerState {
+    Idle,
+    Walk(Instant),
+}
+
+impl PlayerState {
+    pub fn animation_state(&self, now: Instant) -> u32 {
+        match self {
+            Self::Idle => 0,
+            Self::Walk(start) => {
+                let animation = vec![(2, 0.2), (1, 0.0)];
+                let dt = now - *start;
+                let dt = dt.as_secs_f32() % 0.4;
+                let mut frame = 0;
+                for (f, time) in animation {
+                    if dt > time {
+                        frame = f;
+                        break;
+                    }
+                }
+                frame
+            }
+        }
+    }
+}
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -31,7 +59,11 @@ fn main() {
         )),
         Scale(1),
         KeyboardInput(None),
-        Sprite("player".to_string()),
+        Sprite {
+            id: "player".to_string(),
+            frame_id: 0,
+        },
+        PlayerState::Idle,
         movespeed,
     );
 
@@ -55,7 +87,10 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite("apple".to_string()),
+        Sprite {
+            id: "apple".to_string(),
+            frame_id: 0,
+        },
     );
 
     let ashberry = (
@@ -65,7 +100,10 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite("ashberry".to_string()),
+        Sprite {
+            id: "ashberry".to_string(),
+            frame_id: 0,
+        },
     );
 
     let baobab = (
@@ -75,7 +113,10 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite("baobab".to_string()),
+        Sprite {
+            id: "baobab".to_string(),
+            frame_id: 0,
+        },
     );
 
     let beech = (
@@ -85,8 +126,12 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite("beech".to_string()),
+        Sprite {
+            id: "beech".to_string(),
+            frame_id: 0,
+        },
     );
+
     parallax_demo.spawn_entity(player);
     parallax_demo.spawn_entity(apple);
     parallax_demo.spawn_entity(ashberry);
@@ -95,14 +140,16 @@ fn main() {
     parallax_demo.spawn_entity(camera);
 
     parallax_demo.add_system(&move_player);
+    parallax_demo.add_system(&move_camera);
+    parallax_demo.add_system(&update_animation_state);
 
     app.run(event_loop, parallax_demo);
 }
 
-fn move_player(world: &World, dt: Duration) {
-    let mut q = world.query::<(&KeyboardInput, &mut Position, &MoveSpeed)>();
+fn move_player(world: &World, dt: Duration, instant: Instant) {
+    let mut q = world.query::<(&KeyboardInput, &mut Position, &MoveSpeed, &mut PlayerState)>();
 
-    for (_, (key, pos, speed)) in q.iter() {
+    for (_, (key, pos, speed, state)) in q.iter() {
         if let Some(input) = key.0 {
             let dx = Vector3::new(speed.0 * dt.as_secs_f32(), 0.0, 0.0);
             match input {
@@ -111,6 +158,10 @@ fn move_player(world: &World, dt: Duration) {
                     virtual_keycode: Some(VirtualKeyCode::Left),
                     ..
                 } => {
+                    match state {
+                        PlayerState::Idle => *state = PlayerState::Walk(instant),
+                        _ => (),
+                    }
                     pos.0 -= dx;
                 }
                 winit::event::KeyboardInput {
@@ -118,12 +169,21 @@ fn move_player(world: &World, dt: Duration) {
                     virtual_keycode: Some(VirtualKeyCode::Right),
                     ..
                 } => {
+                    match state {
+                        PlayerState::Idle => *state = PlayerState::Walk(instant),
+                        _ => (),
+                    }
                     pos.0 += dx;
                 }
-                _ => (),
+                _ => *state = PlayerState::Idle,
             }
+        } else {
+            *state = PlayerState::Idle;
         }
     }
+}
+
+fn move_camera(world: &World, dt: Duration, _instant: Instant) {
     let mut q = world.query::<(
         &ActiveCamera,
         &mut ParallaxCamera,
@@ -151,5 +211,13 @@ fn move_player(world: &World, dt: Duration) {
             }
             _ => (),
         }
+    }
+}
+
+fn update_animation_state(world: &World, _dt: Duration, instant: Instant) {
+    let mut q = world.query::<(&PlayerState, &mut Sprite)>();
+
+    for (_, (state, sprite)) in q.iter() {
+        sprite.frame_id = state.animation_state(instant);
     }
 }
