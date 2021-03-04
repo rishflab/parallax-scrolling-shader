@@ -28,7 +28,7 @@ impl Sprite {
         asset: SpriteAsset,
     ) -> Self {
         let path = asset
-            .images
+            .frames
             .first()
             .expect("at least 1 animated sprite file was specified");
         let image = image::open(path).unwrap();
@@ -36,7 +36,7 @@ impl Sprite {
         let (vertex_data, index_data) = create_vertices(tex_width, tex_height, PIXELS_PER_METRE);
 
         let textures: Vec<ArrayTexture> = asset
-            .images
+            .frames
             .iter()
             .map(|path| {
                 let image = image::open(path)

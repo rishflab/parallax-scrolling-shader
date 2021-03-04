@@ -29,11 +29,21 @@ pub use app::App;
 pub struct Position(pub Vector3<f32>);
 pub struct Rotation(pub Quaternion<f32>);
 pub struct Scale(pub u8);
+pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
+
 pub struct Sprite {
-    pub id: String,
+    id: String,
     pub frame_id: u32,
 }
-pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
+
+impl Sprite {
+    pub fn new(id: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            frame_id: 0,
+        }
+    }
+}
 
 pub struct Game<'a> {
     world: World,

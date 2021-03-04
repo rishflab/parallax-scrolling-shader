@@ -64,22 +64,6 @@ fn main() {
 
     let movespeed = MoveSpeed(10.0);
 
-    let player = (
-        Position(cgmath::Vector3::new(0.0, 0.0, 20.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
-        Scale(1),
-        KeyboardInput(None),
-        Sprite {
-            id: "player".to_string(),
-            frame_id: 0,
-        },
-        PlayerState::Idle,
-        movespeed,
-    );
-
     let camera = (
         ParallaxCamera::new(
             Vec3::new(0.0, 3.0, 0.0),
@@ -93,6 +77,19 @@ fn main() {
         movespeed,
     );
 
+    let player = (
+        Position(cgmath::Vector3::new(0.0, 0.0, 20.0)),
+        Rotation(Quaternion::from_axis_angle(
+            Vector3::new(0.0, 1.0, 0.0),
+            Deg(0.0),
+        )),
+        Scale(1),
+        KeyboardInput(None),
+        Sprite::new("player"),
+        PlayerState::Idle,
+        movespeed,
+    );
+
     let apple = (
         Position(cgmath::Vector3::new(-2.0, 0.0, 30.0)),
         Rotation(Quaternion::from_axis_angle(
@@ -100,10 +97,7 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite {
-            id: "apple".to_string(),
-            frame_id: 0,
-        },
+        Sprite::new("apple"),
     );
 
     let ashberry = (
@@ -113,10 +107,7 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite {
-            id: "ashberry".to_string(),
-            frame_id: 0,
-        },
+        Sprite::new("ashberry"),
     );
 
     let baobab = (
@@ -126,10 +117,7 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite {
-            id: "baobab".to_string(),
-            frame_id: 0,
-        },
+        Sprite::new("baobab"),
     );
 
     let beech = (
@@ -139,10 +127,7 @@ fn main() {
             Deg(0.0),
         )),
         Scale(1),
-        Sprite {
-            id: "beech".to_string(),
-            frame_id: 0,
-        },
+        Sprite::new("beech"),
     );
 
     parallax_demo.spawn_entity(player);
