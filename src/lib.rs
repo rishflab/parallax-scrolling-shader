@@ -15,6 +15,7 @@ use std::{
 use winit::event::WindowEvent;
 
 pub mod app;
+pub mod asset;
 pub mod camera;
 mod gpu_primitives;
 mod renderer;

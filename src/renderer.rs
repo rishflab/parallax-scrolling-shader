@@ -1,4 +1,5 @@
 use crate::{
+    asset::SpriteAsset,
     gpu_primitives::{CameraUniform, InstanceRaw, Vertex},
     scene::Scene,
     sprite::{DrawSprite, Sprite},
@@ -22,6 +23,7 @@ impl Renderer {
         sc_desc: &wgpu::SwapChainDescriptor,
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
+        sprite_assets: Vec<SpriteAsset>,
     ) -> Self {
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
@@ -84,48 +86,11 @@ impl Renderer {
                 ],
             });
 
-        // Load sprites onto GPU
-        let sprites = vec![
-            Sprite::new(
-                device,
-                queue,
-                &sprite_bind_group_layout,
-                vec![
-                    "assets/adventurer_idle.png",
-                    "assets/adventurer_walk1.png",
-                    "assets/adventurer_walk2.png",
-                ],
-                "player",
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &sprite_bind_group_layout,
-                vec!["assets/apple.png"],
-                "apple",
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &sprite_bind_group_layout,
-                vec![&"assets/ashberry.png"],
-                "ashberry",
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &sprite_bind_group_layout,
-                vec![&"assets/baobab.png"],
-                "baobab",
-            ),
-            Sprite::new(
-                device,
-                queue,
-                &sprite_bind_group_layout,
-                vec![&"assets/beech.png"],
-                "beech",
-            ),
-        ];
+        let mut sprites = vec![];
+
+        for asset in sprite_assets {
+            sprites.push(Sprite::new(device, queue, &sprite_bind_group_layout, asset));
+        }
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,

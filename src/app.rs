@@ -1,4 +1,4 @@
-use crate::{renderer::Renderer, Game};
+use crate::{asset::SpriteAsset, renderer::Renderer, Game};
 use winit::{
     dpi::LogicalSize,
     event::{self, WindowEvent},
@@ -84,7 +84,12 @@ impl App {
         }
     }
 
-    pub fn run(mut self, event_loop: EventLoop<()>, mut game: Game<'static>) {
+    pub fn run(
+        mut self,
+        event_loop: EventLoop<()>,
+        mut game: Game<'static>,
+        sprites: Vec<SpriteAsset>,
+    ) {
         let sc_desc = wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
             width: self.size.width,
@@ -95,7 +100,7 @@ impl App {
         };
         let mut swap_chain = self.device.create_swap_chain(&self.surface, &sc_desc);
 
-        let mut renderer = Renderer::init(&sc_desc, &mut self.device, &self.queue);
+        let mut renderer = Renderer::init(&sc_desc, &mut self.device, &self.queue, sprites);
 
         log::info!("Entering render loop...");
         event_loop.run(move |event, _, control_flow| {

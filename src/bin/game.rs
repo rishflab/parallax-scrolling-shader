@@ -4,6 +4,7 @@ extern crate erlking;
 
 use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use erlking::{
+    asset::SpriteAsset,
     camera::{ActiveCamera, ParallaxCamera},
     App, Game, KeyboardInput, Position, Rotation, Scale, Sprite,
 };
@@ -48,6 +49,18 @@ fn main() {
     let event_loop = EventLoop::new();
     let app = futures::executor::block_on(App::new("parallax-demo", &event_loop));
     let mut parallax_demo = Game::new();
+
+    let sprite_assets = vec![
+        SpriteAsset::new("player", vec![
+            "assets/adventurer_idle.png",
+            "assets/adventurer_walk1.png",
+            "assets/adventurer_walk2.png",
+        ]),
+        SpriteAsset::new("apple", vec!["assets/apple.png"]),
+        SpriteAsset::new("ashberry", vec!["assets/ashberry.png"]),
+        SpriteAsset::new("baobab", vec!["assets/baobab.png"]),
+        SpriteAsset::new("beech", vec!["assets/beech.png"]),
+    ];
 
     let movespeed = MoveSpeed(10.0);
 
@@ -143,7 +156,7 @@ fn main() {
     parallax_demo.add_system(&move_camera);
     parallax_demo.add_system(&update_animation_state);
 
-    app.run(event_loop, parallax_demo);
+    app.run(event_loop, parallax_demo, sprite_assets);
 }
 
 fn move_player(world: &World, dt: Duration, instant: Instant) {

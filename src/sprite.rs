@@ -1,10 +1,11 @@
 use crate::{
+    asset::SpriteAsset,
     gpu_primitives::{Index, InstanceRaw, Vertex},
     renderer::TEXTURE_ARRAY_SIZE,
     texture::ArrayTexture,
 };
 use image::GenericImageView;
-use std::{convert::TryInto, ops::Range, path::Path};
+use std::{convert::TryInto, ops::Range};
 use wgpu::{util::DeviceExt, TextureView};
 
 pub const MAX_INSTANCES: u64 = 1024;
@@ -24,21 +25,22 @@ impl Sprite {
         device: &mut wgpu::Device,
         queue: &wgpu::Queue,
         sprite_bind_group_layout: &wgpu::BindGroupLayout,
-        paths: Vec<impl AsRef<Path>>,
-        id: &str,
+        asset: SpriteAsset,
     ) -> Self {
-        let path = paths
+        let path = asset
+            .images
             .first()
             .expect("at least 1 animated sprite file was specified");
         let image = image::open(path).unwrap();
         let (tex_width, tex_height) = image.dimensions();
         let (vertex_data, index_data) = create_vertices(tex_width, tex_height, PIXELS_PER_METRE);
 
-        let textures: Vec<ArrayTexture> = paths
+        let textures: Vec<ArrayTexture> = asset
+            .images
             .iter()
             .map(|path| {
                 let image = image::open(path)
-                    .unwrap_or_else(|_| panic!("animated sprite exists: {:?}", path.as_ref()));
+                    .unwrap_or_else(|_| panic!("animated sprite exists: {:?}", path.to_str()));
                 ArrayTexture::new(&device, &queue, image.into_rgba())
             })
             .collect();
@@ -106,7 +108,7 @@ impl Sprite {
             instance_buffer,
             bind_group,
             num_indices: index_data.len() as u32,
-            id: id.to_string(),
+            id: asset.id.to_string(),
         }
     }
 
