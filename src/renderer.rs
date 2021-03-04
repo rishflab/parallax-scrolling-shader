@@ -3,7 +3,7 @@ use crate::{
     gpu_primitives::{CameraUniform, InstanceRaw, Vertex},
     scene::Scene,
     sprite::{DrawSprite, Sprite},
-    texture::Texture,
+    texture::DepthTexture,
 };
 use std::{mem, num::NonZeroU32};
 use wgpu::{util::DeviceExt, BlendFactor, BlendOperation};
@@ -14,7 +14,7 @@ pub struct Renderer {
     sprites: Vec<Sprite>,
     uniform_buffer: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
-    depth_texture: Texture,
+    depth_texture: DepthTexture,
     uniform_bind_group: wgpu::BindGroup,
 }
 
@@ -104,7 +104,7 @@ impl Renderer {
         let fs_module =
             device.create_shader_module(&wgpu::include_spirv!("../shaders/shader.frag.spv"));
 
-        let depth_texture = Texture::create_depth_texture(&device, &sc_desc);
+        let depth_texture = DepthTexture::new(&device, &sc_desc);
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -137,7 +137,7 @@ impl Renderer {
                 ..Default::default()
             },
             depth_stencil: Some(wgpu::DepthStencilState {
-                format: Texture::DEPTH_FORMAT,
+                format: DepthTexture::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),
