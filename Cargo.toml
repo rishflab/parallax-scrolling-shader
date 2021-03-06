@@ -16,10 +16,6 @@ wgpu = "0.7"
 hecs = "0.3"
 image = "0.23"
 
-[dependencies.cgmath]
-version = "0.17"
-features = ["swizzle"]
-
 [build-dependencies]
 anyhow = "1.0"
 fs_extra = "1.2"

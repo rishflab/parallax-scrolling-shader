@@ -6,7 +6,7 @@ use crate::{
     scene::Scene,
     time::Timer,
 };
-use cgmath::{Quaternion, Vector3};
+use glam::{Quat, Vec3};
 use hecs::{DynamicBundle, Entity, World};
 use std::{
     collections::HashMap,
@@ -26,8 +26,8 @@ mod time;
 
 pub use app::App;
 
-pub struct Position(pub Vector3<f32>);
-pub struct Rotation(pub Quaternion<f32>);
+pub struct Position(pub Vec3);
+pub struct Rotation(pub Quat);
 pub struct Scale(pub u8);
 pub struct KeyboardInput(pub Option<winit::event::KeyboardInput>);
 

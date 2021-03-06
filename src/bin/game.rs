@@ -2,13 +2,12 @@
 #![feature(or_patterns)]
 extern crate erlking;
 
-use cgmath::{Deg, Quaternion, Rotation3, Vector3};
 use erlking::{
     asset::SpriteAsset,
     camera::{ActiveCamera, ParallaxCamera},
     App, Game, KeyboardInput, Position, Rotation, Scale, Sprite,
 };
-use glam::Vec3;
+use glam::{Quat, Vec3};
 use hecs::World;
 use std::time::{Duration, Instant};
 use winit::{
@@ -78,11 +77,8 @@ fn main() {
     );
 
     let player = (
-        Position(cgmath::Vector3::new(0.0, 0.0, 20.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
+        Position(Vec3::new(0.0, 0.0, 20.0)),
+        Rotation(Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.0)),
         Scale(1),
         KeyboardInput(None),
         Sprite::new("player"),
@@ -91,41 +87,29 @@ fn main() {
     );
 
     let apple = (
-        Position(cgmath::Vector3::new(-2.0, 0.0, 30.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
+        Position(Vec3::new(-2.0, 0.0, 30.0)),
+        Rotation(Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.0)),
         Scale(1),
         Sprite::new("apple"),
     );
 
     let ashberry = (
-        Position(cgmath::Vector3::new(2.0, 0.0, 30.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
+        Position(Vec3::new(2.0, 0.0, 30.0)),
+        Rotation(Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.0)),
         Scale(1),
         Sprite::new("ashberry"),
     );
 
     let baobab = (
-        Position(cgmath::Vector3::new(3.0, 0.0, 55.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
+        Position(Vec3::new(3.0, 0.0, 55.0)),
+        Rotation(Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.0)),
         Scale(1),
         Sprite::new("baobab"),
     );
 
     let beech = (
-        Position(cgmath::Vector3::new(-3.5, 0.0, 95.0)),
-        Rotation(Quaternion::from_axis_angle(
-            Vector3::new(0.0, 1.0, 0.0),
-            Deg(0.0),
-        )),
+        Position(Vec3::new(-3.5, 0.0, 95.0)),
+        Rotation(Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.0)),
         Scale(1),
         Sprite::new("beech"),
     );
@@ -149,7 +133,7 @@ fn move_player(world: &World, dt: Duration, instant: Instant) {
 
     for (_, (key, pos, speed, state)) in q.iter() {
         if let Some(input) = key.0 {
-            let dx = Vector3::new(speed.0 * dt.as_secs_f32(), 0.0, 0.0);
+            let dx = Vec3::new(speed.0 * dt.as_secs_f32(), 0.0, 0.0);
             match input {
                 winit::event::KeyboardInput {
                     state: ElementState::Pressed,

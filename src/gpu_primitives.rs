@@ -1,3 +1,5 @@
+use glam::{Quat, Vec3};
+
 pub type Index = u16;
 
 #[repr(C)]
@@ -37,8 +39,8 @@ pub struct CameraUniform {
 }
 
 pub struct Instance {
-    pub position: cgmath::Vector3<f32>,
-    pub rotation: cgmath::Quaternion<f32>,
+    pub position: Vec3,
+    pub rotation: Quat,
     pub scale: f32,
     pub frame_id: u32,
 }
@@ -53,10 +55,10 @@ pub struct InstanceRaw {
 impl From<Instance> for InstanceRaw {
     fn from(from: Instance) -> Self {
         InstanceRaw {
-            model: (cgmath::Matrix4::from_translation(from.position)
-                * cgmath::Matrix4::from(from.rotation)
-                * cgmath::Matrix4::from_scale(from.scale))
-            .into(),
+            model: (glam::Mat4::from_translation(from.position)
+                * glam::Mat4::from_quat(from.rotation)
+                * glam::Mat4::from_scale(Vec3::splat(from.scale)))
+            .to_cols_array_2d(),
             frame_id: from.frame_id,
         }
     }
