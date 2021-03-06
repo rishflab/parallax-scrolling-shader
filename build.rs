@@ -1,12 +1,34 @@
-use anyhow::*;
-use fs_extra::{copy_items, dir::CopyOptions};
-use glob::glob;
-use rayon::prelude::*;
+use std::path::Path;
 use std::{
-    env,
     fs::{read_to_string, write},
     path::PathBuf,
 };
+
+fn main() {
+    let shader_paths = vec!["shaders/shader.vert", "shaders/shader.frag"];
+
+    let mut compiler = shaderc::Compiler::new().expect("Able to create shader compiler");
+
+    // This can't be parallelized. The [shaderc::Compiler] is not
+    // thread safe. Also, it creates a lot of resources. You could
+    // spawn multiple processes to handle this, but it would probably
+    // be better just to only compile shaders that have been changed
+    // recently.
+    for shader_path in shader_paths {
+        let shader = ShaderData::load(shader_path);
+        let compiled = compiler
+            .compile_into_spirv(
+                &shader.src,
+                shader.kind,
+                &shader.src_path.to_str().unwrap(),
+                "main",
+                None,
+            )
+            .unwrap();
+        write(shader.spv_path, compiled.as_binary_u8()).unwrap();
+        println!("cargo:rerun-if-changed={}", shader_path);
+    }
+}
 
 struct ShaderData {
     src: String,
@@ -16,77 +38,28 @@ struct ShaderData {
 }
 
 impl ShaderData {
-    pub fn load(src_path: PathBuf) -> Result<Self> {
+    pub fn load(src_path: impl AsRef<Path>) -> Self {
+        let src_path: &Path = src_path.as_ref();
         let extension = src_path
             .extension()
-            .context("File has no extension")?
+            .expect("File has extension")
             .to_str()
-            .context("Extension cannot be converted to &str")?;
+            .expect("Extension can be converted to &str");
         let kind = match extension {
             "vert" => shaderc::ShaderKind::Vertex,
             "frag" => shaderc::ShaderKind::Fragment,
             "comp" => shaderc::ShaderKind::Compute,
-            _ => bail!("Unsupported shader: {}", src_path.display()),
+            _ => panic!("Unsupported shader: {}", src_path.display()),
         };
 
-        let src = read_to_string(src_path.clone())?;
+        let src = read_to_string(src_path).unwrap();
         let spv_path = src_path.with_extension(format!("{}.spv", extension));
 
-        Ok(Self {
+        Self {
             src,
-            src_path,
+            src_path: src_path.to_path_buf(),
             spv_path,
             kind,
-        })
+        }
     }
-}
-
-fn main() -> Result<()> {
-    // Collect all shaders recursively within /src/
-    // UDPATED!
-    let mut shader_paths = Vec::new();
-    shader_paths.extend(glob("./shaders/**/*.vert")?);
-    shader_paths.extend(glob("./shaders/**/*.frag")?);
-    shader_paths.extend(glob("./shaders/**/*.comp")?);
-
-    // UPDATED!
-    // This is parallelized
-    let shaders = shader_paths
-        .into_par_iter()
-        .map(|glob_result| ShaderData::load(glob_result?))
-        .collect::<Vec<Result<_>>>()
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?;
-
-    let mut compiler = shaderc::Compiler::new().context("Unable to create shader compiler")?;
-
-    // This can't be parallelized. The [shaderc::Compiler] is not
-    // thread safe. Also, it creates a lot of resources. You could
-    // spawn multiple processes to handle this, but it would probably
-    // be better just to only compile shaders that have been changed
-    // recently.
-    for shader in shaders {
-        // This tells cargo to rerun this script if something in /src/ changes.
-        println!("cargo:rerun-if-changed={:?}", shader.src_path);
-
-        let compiled = compiler.compile_into_spirv(
-            &shader.src,
-            shader.kind,
-            &shader.src_path.to_str().unwrap(),
-            "main",
-            None,
-        )?;
-        write(shader.spv_path, compiled.as_binary_u8())?;
-    }
-
-    // This tells cargo to rerun this script if something in /res/ changes.
-    println!("cargo:rerun-if-changed=shaders/*");
-
-    let out_dir = env::var("OUT_DIR")?;
-    let mut copy_options = CopyOptions::new();
-    copy_options.overwrite = true;
-    let paths_to_copy = vec!["shaders/"];
-    copy_items(&paths_to_copy, out_dir, &copy_options)?;
-
-    Ok(())
 }
