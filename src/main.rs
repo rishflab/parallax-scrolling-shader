@@ -1,14 +1,14 @@
 #![allow(clippy::single_match)]
 #![feature(or_patterns)]
-extern crate erlking;
+extern crate parallax_scrolling_shader_demo;
 
-use erlking::{
+use glam::{Quat, Vec3};
+use hecs::World;
+use parallax_scrolling_shader_demo::{
     asset::SpriteAsset,
     camera::{ActiveCamera, ParallaxCamera},
     App, Game, KeyboardInput, Position, Rotation, Scale, Sprite,
 };
-use glam::{Quat, Vec3};
-use hecs::World;
 use std::time::{Duration, Instant};
 use winit::{
     event::{ElementState, VirtualKeyCode},
@@ -18,43 +18,13 @@ use winit::{
 #[derive(Clone, Copy)]
 struct MoveSpeed(f32);
 
-enum PlayerState {
-    Idle,
-    Walk(Instant),
-}
-
-impl PlayerState {
-    pub fn animation_state(&self, now: Instant) -> u32 {
-        match self {
-            Self::Idle => 0,
-            Self::Walk(start) => {
-                let animation = vec![(2, 0.2), (1, 0.0)];
-                let dt = now - *start;
-                let dt = dt.as_secs_f32() % 0.4;
-                let mut frame = 0;
-                for (f, time) in animation {
-                    if dt > time {
-                        frame = f;
-                        break;
-                    }
-                }
-                frame
-            }
-        }
-    }
-}
-
 fn main() {
     let event_loop = EventLoop::new();
-    let app = futures::executor::block_on(App::new("parallax-demo", &event_loop));
+    let app = futures::executor::block_on(App::new("parallax-scrolling-shader-demo", &event_loop));
     let mut parallax_demo = Game::new();
 
     let sprite_assets = vec![
-        SpriteAsset::new("player", vec![
-            "assets/adventurer_idle.png",
-            "assets/adventurer_walk1.png",
-            "assets/adventurer_walk2.png",
-        ]),
+        SpriteAsset::new("player", vec!["assets/player.png"]),
         SpriteAsset::new("apple", vec!["assets/apple.png"]),
         SpriteAsset::new("ashberry", vec!["assets/ashberry.png"]),
         SpriteAsset::new("baobab", vec!["assets/baobab.png"]),
@@ -82,7 +52,6 @@ fn main() {
         Scale(1),
         KeyboardInput(None),
         Sprite::new("player"),
-        PlayerState::Idle,
         movespeed,
     );
 
@@ -123,15 +92,14 @@ fn main() {
 
     parallax_demo.add_system(&move_player);
     parallax_demo.add_system(&move_camera);
-    parallax_demo.add_system(&update_animation_state);
 
     app.run(event_loop, parallax_demo, sprite_assets);
 }
 
-fn move_player(world: &World, dt: Duration, instant: Instant) {
-    let mut q = world.query::<(&KeyboardInput, &mut Position, &MoveSpeed, &mut PlayerState)>();
+fn move_player(world: &World, dt: Duration, _instant: Instant) {
+    let mut q = world.query::<(&KeyboardInput, &mut Position, &MoveSpeed)>();
 
-    for (_, (key, pos, speed, state)) in q.iter() {
+    for (_, (key, pos, speed)) in q.iter() {
         if let Some(input) = key.0 {
             let dx = Vec3::new(speed.0 * dt.as_secs_f32(), 0.0, 0.0);
             match input {
@@ -140,10 +108,6 @@ fn move_player(world: &World, dt: Duration, instant: Instant) {
                     virtual_keycode: Some(VirtualKeyCode::Left),
                     ..
                 } => {
-                    match state {
-                        PlayerState::Idle => *state = PlayerState::Walk(instant),
-                        _ => (),
-                    }
                     pos.0 -= dx;
                 }
                 winit::event::KeyboardInput {
@@ -151,16 +115,10 @@ fn move_player(world: &World, dt: Duration, instant: Instant) {
                     virtual_keycode: Some(VirtualKeyCode::Right),
                     ..
                 } => {
-                    match state {
-                        PlayerState::Idle => *state = PlayerState::Walk(instant),
-                        _ => (),
-                    }
                     pos.0 += dx;
                 }
-                _ => *state = PlayerState::Idle,
+                _ => (),
             }
-        } else {
-            *state = PlayerState::Idle;
         }
     }
 }
@@ -193,13 +151,5 @@ fn move_camera(world: &World, dt: Duration, _instant: Instant) {
             }
             _ => (),
         }
-    }
-}
-
-fn update_animation_state(world: &World, _dt: Duration, instant: Instant) {
-    let mut q = world.query::<(&PlayerState, &mut Sprite)>();
-
-    for (_, (state, sprite)) in q.iter() {
-        sprite.frame_id = state.animation_state(instant);
     }
 }

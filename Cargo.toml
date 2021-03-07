@@ -1,5 +1,5 @@
 [package]
-name = "erlking"
+name = "parallax-scrolling-shader-demo"
 version = "0.1.0"
 authors = ["rishflab <rishflab@hotmail.com>"]
 edition = "2018"
