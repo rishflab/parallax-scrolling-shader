@@ -64,8 +64,6 @@ void main() {
     vec4 pos_ndc = o_pos_ndc + d_ndc;
 
     // 8. Convert back to clip space for output to the rasteriser
-    vec4 pos = o_pos_ndc * o_pos.w;
-
-    gl_Position = pos;
+    gl_Position = pos_ndc * o_pos.w;
 
 }
