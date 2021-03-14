@@ -41,7 +41,7 @@ impl Sprite {
             .map(|path| {
                 let image = image::open(path)
                     .unwrap_or_else(|_| panic!("animated sprite exists: {:?}", path.to_str()));
-                ArrayTexture::new(&device, &queue, image.into_rgba())
+                ArrayTexture::new(&device, &queue, image.into_rgba8())
             })
             .collect();
 
